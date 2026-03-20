@@ -1,0 +1,42 @@
+{
+    "name": "zxcvbn-ts",
+    "version": "1.0.0",
+    "description": "TypeScript rewrite of the zxcvbn password strength estimator",
+    "author": "Kunal Tanwar",
+    "license": "MIT",
+    "main": "./dist/cjs/index.js",
+    "module": "./dist/esm/index.js",
+    "types": "./dist/types/index.d.ts",
+    "exports": {
+        ".": {
+            "import": "./dist/esm/index.js",
+            "require": "./dist/cjs/index.js",
+            "types": "./dist/types/index.d.ts"
+        }
+    },
+    "files": [
+        "dist/",
+        "src/"
+    ],
+    "scripts": {
+        "build": "bun run build:cjs && bun run build:esm && bun run build:types",
+        "build:cjs": "tsc -p tsconfig.cjs.json",
+        "build:esm": "tsc -p tsconfig.esm.json",
+        "build:types": "tsc -p tsconfig.types.json",
+        "typecheck": "tsc --noEmit",
+        "test": "bun test",
+        "clean": "rm -rf dist"
+    },
+    "keywords": [
+        "password",
+        "strength",
+        "zxcvbn",
+        "entropy",
+        "security",
+        "typescript"
+    ],
+    "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.5.0"
+    }
+}

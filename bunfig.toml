@@ -1,0 +1,4 @@
+[test]
+# Run all *.test.ts files under tests/
+root = "./tests"
+timeout = 10000

@@ -2,11 +2,11 @@
 // zxcvbn-ts — Main entry point
 // ============================================================
 
-import { setUserInputDictionary, omnimatch } from "./matching";
-import { mostGuessableMatchSequence } from "./scoring";
-import { estimateAttackTimes } from "./time_estimates";
-import { getFeedback } from "./feedback";
-import type { ZxcvbnResult } from "./types";
+import { setUserInputDictionary, omnimatch } from "./matching"
+import { mostGuessableMatchSequence } from "./scoring"
+import { estimateAttackTimes } from "./time_estimates"
+import { getFeedback } from "./feedback"
+import type { ZxcvbnResult } from "./types"
 
 /**
  * Estimate the strength of `password`.
@@ -28,51 +28,44 @@ import type { ZxcvbnResult } from "./types";
  * console.log(result.feedback);       // { warning: "", suggestions: [] }
  * ```
  */
-export function zxcvbn(
-  password: string,
-  userInputs: Array<string | number | boolean> = []
-): ZxcvbnResult {
-  // ---- Input validation ---------------------------------------------------
-  if (typeof password !== "string") {
-    throw new TypeError(`zxcvbn: password must be a string, got ${typeof password}`);
-  }
-
-  const start = Date.now();
-
-  // ---- Sanitise user inputs -----------------------------------------------
-  // Accept strings, numbers, and booleans; coerce to lowercase strings.
-  const sanitizedInputs: string[] = [];
-  for (const arg of userInputs) {
-    if (
-      typeof arg === "string" ||
-      typeof arg === "number" ||
-      typeof arg === "boolean"
-    ) {
-      sanitizedInputs.push(String(arg).toLowerCase());
+export function zxcvbn(password: string, userInputs: Array<string | number | boolean> = []): ZxcvbnResult {
+    // ---- Input validation ---------------------------------------------------
+    if (typeof password !== "string") {
+        throw new TypeError(`zxcvbn: password must be a string, got ${typeof password}`)
     }
-  }
 
-  // Inject user inputs as a per-request ranked dictionary so state is stateless
-  setUserInputDictionary(sanitizedInputs);
+    const start = Date.now()
 
-  // ---- Run all matchers ---------------------------------------------------
-  const matches = omnimatch(password);
+    // ---- Sanitise user inputs -----------------------------------------------
+    // Accept strings, numbers, and booleans; coerce to lowercase strings.
+    const sanitizedInputs: string[] = []
+    for (const arg of userInputs) {
+        if (typeof arg === "string" || typeof arg === "number" || typeof arg === "boolean") {
+            sanitizedInputs.push(String(arg).toLowerCase())
+        }
+    }
 
-  // ---- Find the optimal (minimum-guesses) match sequence ------------------
-  const result = mostGuessableMatchSequence(password, matches);
+    // Inject user inputs as a per-request ranked dictionary so state is stateless
+    setUserInputDictionary(sanitizedInputs)
 
-  // ---- Estimate crack times -----------------------------------------------
-  const attackTimes = estimateAttackTimes(result.guesses);
+    // ---- Run all matchers ---------------------------------------------------
+    const matches = omnimatch(password)
 
-  // ---- Generate feedback --------------------------------------------------
-  const feedback = getFeedback(attackTimes.score, result.sequence);
+    // ---- Find the optimal (minimum-guesses) match sequence ------------------
+    const result = mostGuessableMatchSequence(password, matches)
 
-  return {
-    ...result,
-    ...attackTimes,
-    feedback,
-    calc_time: Date.now() - start,
-  };
+    // ---- Estimate crack times -----------------------------------------------
+    const attackTimes = estimateAttackTimes(result.guesses)
+
+    // ---- Generate feedback --------------------------------------------------
+    const feedback = getFeedback(attackTimes.score, result.sequence)
+
+    return {
+        ...result,
+        ...attackTimes,
+        feedback,
+        calc_time: Date.now() - start,
+    }
 }
 
-export default zxcvbn;
+export default zxcvbn

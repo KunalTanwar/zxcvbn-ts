@@ -1,6 +1,6 @@
 {
     "name": "zxcvbn-ts",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "TypeScript rewrite of the zxcvbn password strength estimator",
     "author": "Kunal Tanwar",
     "license": "MIT",
@@ -12,6 +12,11 @@
             "import": "./dist/esm/index.js",
             "require": "./dist/cjs/index.js",
             "types": "./dist/types/index.d.ts"
+        },
+        "./ai": {
+            "import": "./dist/esm/ai.js",
+            "require": "./dist/cjs/ai.js",
+            "types": "./dist/types/ai.d.ts"
         }
     },
     "files": [

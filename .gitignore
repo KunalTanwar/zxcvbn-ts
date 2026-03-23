@@ -6,6 +6,5 @@ node_modules/
 .env
 .npmrc
 bun.lock
-src/frequency_lists.json
 
 *.tgz

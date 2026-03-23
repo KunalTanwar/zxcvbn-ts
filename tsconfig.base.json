@@ -12,7 +12,8 @@
         "forceConsistentCasingInFileNames": true,
         "esModuleInterop": true,
         "skipLibCheck": true,
-        "rootDir": "src"
+        "rootDir": "src",
+        "resolveJsonModule": true
     },
     "include": ["src/**/*"],
     "exclude": ["node_modules", "dist", "tests"]

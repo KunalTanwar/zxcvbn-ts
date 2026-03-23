@@ -5,6 +5,7 @@
         "moduleResolution": "bundler",
         "outDir": "dist/esm",
         "sourceMap": true,
-        "declaration": false
+        "declaration": false,
+        "resolveJsonModule": true
     }
 }

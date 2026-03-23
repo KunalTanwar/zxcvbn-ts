@@ -5,6 +5,7 @@
         "moduleResolution": "node",
         "outDir": "dist/cjs",
         "sourceMap": true,
-        "declaration": false
+        "declaration": false,
+        "resolveJsonModule": true
     }
 }

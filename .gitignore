@@ -3,5 +3,9 @@ dist/
 node_modules/
 
 # Files
+.env
 .npmrc
 bun.lock
+src/frequency_lists.json
+
+*.tgz

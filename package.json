@@ -1,6 +1,6 @@
 {
     "name": "zxcvbn-ts",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "description": "TypeScript rewrite of the zxcvbn password strength estimator",
     "author": "Kunal Tanwar",
     "license": "MIT",
@@ -21,12 +21,13 @@
     },
     "files": [
         "dist/",
-        "src/"
+        "src/",
+        "data/"
     ],
     "scripts": {
         "build": "bun run build:cjs && bun run build:esm && bun run build:types",
-        "build:cjs": "tsc -p tsconfig.cjs.json",
-        "build:esm": "tsc -p tsconfig.esm.json",
+        "build:cjs": "tsc -p tsconfig.cjs.json && cp data/frequency_lists.json dist/cjs/frequency_lists.json",
+        "build:esm": "tsc -p tsconfig.esm.json && cp data/frequency_lists.json dist/esm/frequency_lists.json",
         "build:types": "tsc -p tsconfig.types.json",
         "typecheck": "tsc --noEmit",
         "test": "bun test",

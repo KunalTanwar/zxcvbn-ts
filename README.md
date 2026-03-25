@@ -61,9 +61,9 @@ Supports **Anthropic (Claude)**, **OpenAI (ChatGPT)**, **Google (Gemini)**, and 
 
 Get an API key from your preferred provider:
 
-- Anthropic: console.anthropic.com
-- OpenAI: platform.openai.com
-- Gemini: aistudio.google.com
+- Anthropic: [console.anthropic.com](https://console.anthropic.com)
+- OpenAI: [platform.openai.com](https://platform.openai.com)
+- Gemini: [aistudio.google.com](https://aistudio.google.com)
 
 Add it your environment.
 

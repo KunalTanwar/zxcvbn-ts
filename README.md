@@ -12,7 +12,7 @@ A complete TypeScript rewrite of Dropbox's [zxcvbn](https://github.com/dropbox/z
 - **Full TypeScript** — strict mode, discriminated-union `Match` type, exhaustive type narrowing
 - **Dual CJS/ESM Output** — works in Node.js, bundlers, and modern browsers
 - **Populated Dictionaries** — all 93,855 words across 6 frequency lists included out of the box
-- **Optional AI Feedback** — personalised explanations powered by Claude (bring your own API key)
+- **Optional AI Feedback** — personalised explanations via Claude, ChatGPT, Gemini, or any custom adapter
 - **Zero Runtime Dependencies** for the core library
 - **Bun-native** — uses `bun test` and `bun run` throughout
 - **Bug Fixes** over the original CoffeeScript source (see [Changes from original](#changes-from-original))
@@ -55,29 +55,50 @@ const result = zxcvbn("alice1990", ["alice", "alice@example.com"])
 
 The core `zxcvbn()` function is synchronous and has zero dependencies. If you want richer, personalised feedback you can optionally use `zxcvbnAI()`, which runs the same analysis and then sends the structured result to Claude for a human-readable explanation.
 
+Supports **Anthropic (Claude)**, **OpenAI (ChatGPT)**, **Google (Gemini)**, and any **custom adapter**.
+
 ### Setup
 
-You need an Anthropic API key. Get one at [console.anthropic.com](https://console.anthropic.com/).
+Get an API key from your preferred provider:
 
-You pay for your own API calls — the library never touches your key beyond passing it to the Anthropic API.
+- Anthropic: console.anthropic.com
+- OpenAI: platform.openai.com
+- Gemini: aistudio.google.com
 
 Add it your environment.
 
 ```bash
-# .env (never commit this file)
-ANANTHROPIC_API_KEY=sk-ant-your-key-here
+# .env  (never commit this file)
+ANTHROPIC_API_KEY=sk-ant-...
+# or
+OPENAI_API_KEY=sk-...
+# or
+GEMINI_API_KEY=...
 ```
 
 ### Usage
 
 ```ts
-import { zxcvbnAI } from "zxcvbn-ts/ai"
+import { zxcvbnAI, anthropic, openai, gemini } from "zxcvbn-ts/ai"
 
-const result = await zxcvbnAI("password123")
+// Anthropic (Claude) — default if no provider given
+const result = await zxcvbnAI("password123", {
+    provider: anthropic({ apiKey: "sk-ant-..." }),
+})
+
+// OpenAI (ChatGPT)
+const result = await zxcvbnAI("password123", {
+    provider: openai({ apiKey: "sk-..." }),
+})
+
+// Google Gemini
+const result = await zxcvbnAI("password123", {
+    provider: gemini({ apiKey: "..." }),
+})
 
 console.log(result.score) // 0
 console.log(result.feedback.warning) // "This is a top-10 common password."
-console.log(result.feedback.suggestions) // ["Use a passphrase instead.", "Add symbols and uncommon words."]
+console.log(result.feedback.suggestions) // ["Use a passphrase instead.", ...]
 console.log(result.feedback.explanation)
 // "Your password combines one of the most commonly used passwords with a
 //  predictable number suffix. Attackers specifically try these combinations
@@ -92,12 +113,44 @@ const result = await zxcvbnAI("password123", {
 })
 ```
 
-### How it works
+### Custom Adapter
 
-1. `zxcvbn()` runs its full analysis — scoring, pattern matching, crack time estimates
-2. The structured result (score, pattern breakdown, crack time) is sent to Claude as context
-3. Claude returns a `warning`, `suggestions`, and a plain-English `explanation` tailored to the actual weakness
-4. The result is identical to a normal `ZxcvbnResult` with an extended `feedback` object
+Use any LLM — Ollama, Mistral, or your own — by passing a custom adapter:
+
+```ts
+import { zxcvbnAI } from "zxcvbn-ts/ai"
+import type { AIProvider } from "zxcvbn-ts/ai"
+
+const myProvider: AIProvider = {
+    complete: async (systemPrompt, userPrompt) => {
+        const res = await myLLM.chat({ system: systemPrompt, user: userPrompt })
+
+        return res.text // must return a JSON string
+    },
+}
+
+const result = await zxcvbnAI("password123", { provider: myProvider })
+```
+
+The `complete()` method receives two strings — the system prompt and user prompt — and must return a JSON string with `warning`, `suggestions`, and `explanation` fields.
+
+### Provider Options
+
+All built-in providers accept the same options:
+
+| Option      | Type     | Default   | Description                                                    |
+| ----------- | -------- | --------- | -------------------------------------------------------------- |
+| `apiKey`    | `string` | env var   | Your API key. Falls back to the provider's env var if omitted. |
+| `model`     | `string` | see below | Override the model used.                                       |
+| `maxTokens` | `number` | `300`     | Max tokens for the AI response.                                |
+
+Default models and env var fallbacks:
+
+| Provider      | Default model               | Env var             |
+| ------------- | --------------------------- | ------------------- |
+| `anthropic()` | `claude-haiku-4-5-20251001` | `ANTHROPIC_API_KEY` |
+| `openai()`    | `gpt-4o-mini`               | `OPENAI_API_KEY`    |
+| `gemini()`    | `gemini-1.5-flash`          | `GEMINI_API_KEY`    |
 
 ### `zxcvbnAI(password, options?, userInputs?)`
 
@@ -107,33 +160,24 @@ const result = await zxcvbnAI("password123", {
 | `options`    | `ZxcvbnAIOptions`                    | `{}`    | API key and model overrides.            |
 | `userInputs` | `Array<string \| number \| boolean>` | `[]`    | User-specific words to penalise.        |
 
-`ZxcvbnAIOptions`
-
-| Option      | Type     | Default                     | Description                     |
-| ----------- | -------- | --------------------------- | ------------------------------- |
-| `apiKey`    | `string` | `ANTHROPIC_API_KEY` env var | Your Anthropic API key.         |
-| `model`     | `string` | `claude-haiku-4-5-20251001` | Override the Claude model.      |
-| `maxTokens` | `number` | `300`                       | Max tokens for the AI response. |
-
-**Returns** `Promise<ZxcvbnAIResult>` — a standard `ZxcvbnResult` with an extended `feedback` object that adds an `explanation` field.
-
 ### Real-world example
 
 A signup form checking password strength with AI feedback:
 
 ```ts
-import { zxcvbnAI } from "zxcvbn-ts/ai"
+import { zxcvbnAI, openai } from "zxcvbn-ts/ai"
 
 async function validatePassword(password: string, username: string) {
-    const result = await zxcvbnAI(password, {}, [username])
+    const result = await zxcvbnAI(
+        password,
+        { provider: openai() }, // picks up OPENAI_API_KEY automatically
+        [username],
+    )
 
     if (result.score < 3) {
         return {
             valid: false,
             message: result.feedback.explanation,
-            // "Your password contains your username and a common word.
-            //  Attackers try personal information first. Use a passphrase
-            //  with unrelated words instead."
         }
     }
 
@@ -143,7 +187,7 @@ async function validatePassword(password: string, username: string) {
 
 ### Cost
 
-`zxcvbnAI()` uses claude-haiku-4-5 by default — the fastest and cheapest Claude model. A typical password check uses ~200 input tokens and ~100 output tokens, costing a fraction of a cent per call. For high-traffic applications, consider caching results or only calling the AI for weak passwords `(score < 3)`.
+The default models are the cheapest options from each provider. A typical password check uses ~200 input tokens and ~100 output tokens — a fraction of a cent per call. For high-traffic applications consider caching results or only calling the AI for weak passwords (`score < 3`).
 
 ## API
 
@@ -208,7 +252,14 @@ Four attack scenarios, available as both raw seconds and human-readable strings:
 ### `Match` (discriminated union)
 
 ```ts
-type Match = BruteforceMatch | DictionaryMatch | SpatialMatch | RepeatMatch | SequenceMatch | RegexMatch | DateMatch
+type Match =
+    | BruteforceMatch
+    | DictionaryMatch
+    | SpatialMatch
+    | RepeatMatch
+    | SequenceMatch
+    | RegexMatch
+    | DateMatch
 ```
 
 Narrow on the `pattern` discriminant:
@@ -287,15 +338,16 @@ dist/
 
 ## Changes from original
 
-| #   | File                 | Change                                                                                                                                                                                      |
-| --- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | `scoring.ts`         | `unwind()` crashed on empty password (`n=0`) — guarded with early return                                                                                                                    |
-| 2   | `main.ts`            | Non-string `password` was silently coerced — now throws `TypeError`                                                                                                                         |
-| 3   | `matching.ts`        | `sorted()` erased match subtypes — now generic `sorted<T extends Match>()`                                                                                                                  |
-| 4   | `matching.ts`        | Lazy `initRankedDictionaries()` short-circuited when `setUserInputDictionary` ran first, causing all dictionary matching to silently fail — replaced with eager module-level initialisation |
-| 5   | `matching.ts`        | `REFERENCE_YEAR` recomputed on every call — moved to module load time                                                                                                                       |
-| 6   | `frequency_lists.ts` | Stub returning empty arrays replaced with full 93,855-word dataset                                                                                                                          |
-| 7   | `feedback.ts`        | Unused imports removed                                                                                                                                                                      |
+| #   | File                  | Change                                                                                                                                                                                      |
+| --- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `scoring.ts`          | `unwind()` crashed on empty password (`n=0`) — guarded with early return                                                                                                                    |
+| 2   | `main.ts`             | Non-string `password` was silently coerced — now throws `TypeError`                                                                                                                         |
+| 3   | `matching.ts`         | `sorted()` erased match subtypes — now generic `sorted<T extends Match>()`                                                                                                                  |
+| 4   | `matching.ts`         | Lazy `initRankedDictionaries()` short-circuited when `setUserInputDictionary` ran first, causing all dictionary matching to silently fail — replaced with eager module-level initialisation |
+| 5   | `matching.ts`         | `REFERENCE_YEAR` recomputed on every call — moved to module load time                                                                                                                       |
+| 6   | `frequency_lists.ts`  | Stub returning empty arrays replaced with full 93,855-word dataset                                                                                                                          |
+| 7   | `adjacency_graphs.ts` | Bare `$` key corrected to `"$"` for consistency                                                                                                                                             |
+| 8   | `feedback.ts`         | Unused imports removed                                                                                                                                                                      |
 
 ## License
 

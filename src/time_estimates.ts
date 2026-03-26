@@ -16,11 +16,13 @@ type ScenarioKey = keyof typeof ATTACK_RATES
 
 export function estimateAttackTimes(guesses: number): AttackTimes {
     const crackTimesSeconds = {} as CrackTimesSeconds
+
     for (const [scenario, rate] of Object.entries(ATTACK_RATES) as Array<[ScenarioKey, number]>) {
         ;(crackTimesSeconds as Record<ScenarioKey, number>)[scenario] = guesses / rate
     }
 
     const crackTimesDisplay = {} as CrackTimesDisplay
+
     for (const [scenario, seconds] of Object.entries(crackTimesSeconds) as Array<[ScenarioKey, number]>) {
         ;(crackTimesDisplay as Record<ScenarioKey, string>)[scenario] = displayTime(seconds)
     }
@@ -40,6 +42,7 @@ export function guessesToScore(guesses: number): 0 | 1 | 2 | 3 | 4 {
     if (guesses < 1e6 + DELTA) return 1
     if (guesses < 1e8 + DELTA) return 2
     if (guesses < 1e10 + DELTA) return 3
+
     return 4
 }
 
@@ -84,5 +87,6 @@ export function displayTime(seconds: number): string {
     if (displayNum !== null && displayNum !== 1) {
         displayStr += "s"
     }
+
     return displayStr
 }

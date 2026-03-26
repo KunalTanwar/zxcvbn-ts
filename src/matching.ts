@@ -25,9 +25,11 @@ import type {
 
 function buildRankedDict(orderedList: readonly string[]): RankedDictionary {
     const result: Record<string, number> = {}
+
     for (let i = 0; i < orderedList.length; i++) {
         result[orderedList[i]] = i + 1 // rank starts at 1
     }
+
     return result
 }
 
@@ -73,7 +75,7 @@ const L33T_TABLE: L33tTable = {
 // ----------------------------------------------------------------
 
 const REGEXEN: Record<string, RegExp> = {
-    recent_year: /19\d\d|200\d|201\d/g,
+    recent_year: /19\d\d|20[0-3]\d/g,
 }
 
 // ----------------------------------------------------------------
@@ -161,9 +163,11 @@ export function omnimatch(password: string): Match[] {
         regexMatch,
         dateMatch,
     ]
+
     for (const matcher of matchers) {
         extend(matches, matcher(password))
     }
+
     return sorted(matches)
 }
 
@@ -178,19 +182,24 @@ export function dictionaryMatch(
     const matches: DictionaryMatch[] = []
     const len = password.length
     const passwordLower = password.toLowerCase()
+    const passwordNormalized = passwordLower.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
 
     for (const [dictionaryName, rankedDict] of Object.entries(rankedDictionaries)) {
         for (let i = 0; i < len; i++) {
             for (let j = i; j < len; j++) {
                 const word = passwordLower.slice(i, j + 1)
-                if (word in rankedDict) {
-                    const rank = rankedDict[word]
+                const wordNorm = passwordNormalized.slice(i, j + 1)
+                const matched = word in rankedDict ? word : wordNorm in rankedDict ? wordNorm : null
+
+                if (matched) {
+                    const rank = rankedDict[matched]
+
                     matches.push({
                         pattern: "dictionary",
                         i,
                         j,
                         token: password.slice(i, j + 1),
-                        matched_word: word,
+                        matched_word: matched,
                         rank,
                         dictionary_name: dictionaryName,
                         reversed: false,
@@ -200,6 +209,7 @@ export function dictionaryMatch(
             }
         }
     }
+
     return sorted(matches)
 }
 
@@ -209,13 +219,17 @@ export function reverseDictionaryMatch(
 ): DictionaryMatch[] {
     const reversedPassword = password.split("").reverse().join("")
     const matches = dictionaryMatch(reversedPassword, rankedDictionaries)
+
     for (const match of matches) {
         match.token = match.token.split("").reverse().join("") // reverse back
         match.reversed = true
+
         const [newI, newJ] = [password.length - 1 - match.j, password.length - 1 - match.i]
+
         match.i = newI
         match.j = newJ
     }
+
     return sorted(matches)
 }
 
@@ -226,52 +240,66 @@ export function reverseDictionaryMatch(
 function relevantL33tSubtable(password: string, table: L33tTable): L33tTable {
     const passwordChars = new Set(password.split(""))
     const subtable: Record<string, string[]> = {}
+
     for (const [letter, subs] of Object.entries(table)) {
         const relevantSubs = subs.filter((sub) => passwordChars.has(sub))
+
         if (relevantSubs.length > 0) {
             subtable[letter] = relevantSubs
         }
     }
+
     return subtable
 }
 
 function enumerateL33tSubs(table: L33tTable): Array<Record<string, string>> {
     const keys = Object.keys(table)
+
     let subs: Array<[string, string][]> = [[]]
 
     const dedup = (subs: Array<[string, string][]>): Array<[string, string][]> => {
         const deduped: Array<[string, string][]> = []
         const members = new Set<string>()
+
         for (const sub of subs) {
             const assoc = [...sub].sort((a, b) => (a[0] < b[0] ? -1 : 1))
             const label = assoc.map(([k, v]) => `${k},${v}`).join("-")
+
             if (!members.has(label)) {
                 members.add(label)
                 deduped.push(sub)
             }
         }
+
         return deduped
     }
 
     const helper = (keys: string[]): void => {
         if (!keys.length) return
+
         const [firstKey, ...restKeys] = keys
         const nextSubs: Array<[string, string][]> = []
+
         for (const l33tChr of table[firstKey]) {
             for (const sub of subs) {
                 const dupL33tIndex = sub.findIndex(([k]) => k === l33tChr)
+
                 if (dupL33tIndex === -1) {
                     nextSubs.push([...sub, [l33tChr, firstKey]])
                 } else {
                     const subAlternative = [...sub]
+
                     subAlternative.splice(dupL33tIndex, 1)
                     subAlternative.push([l33tChr, firstKey])
+
                     nextSubs.push(sub)
                     nextSubs.push(subAlternative)
                 }
             }
         }
+
         subs = dedup(nextSubs)
+
         helper(restKeys)
     }
 
@@ -288,19 +316,29 @@ export function l33tMatch(
     const matches: DictionaryMatch[] = []
     const subTable = relevantL33tSubtable(password, l33tTable)
 
+    // If the password has too many distinct l33t characters the substitution
+    // enumeration explodes combinatorially. Cap at a safe limit — passwords
+    // with 5+ distinct l33t chars are almost certainly not dictionary words.
+    if (Object.keys(subTable).length > 4) return matches
+
     for (const sub of enumerateL33tSubs(subTable)) {
         if (isEmpty(sub as Record<string, unknown>)) break
+
         const subbedPassword = translate(password, sub)
 
         for (const match of dictionaryMatch(subbedPassword, rankedDictionaries)) {
             const token = password.slice(match.i, match.j + 1)
+
             if (token.toLowerCase() === match.matched_word) continue // no actual substitution
+
             const matchSub: Record<string, string> = {}
+
             for (const [subbedChr, chr] of Object.entries(sub)) {
                 if (token.includes(subbedChr)) {
                     matchSub[subbedChr] = chr
                 }
             }
+
             match.l33t = true
             match.token = token
             match.sub = matchSub
@@ -310,6 +348,7 @@ export function l33tMatch(
             matches.push(match)
         }
     }
+
     // Filter single-char l33t matches (too noisy)
     return sorted(matches.filter((m) => m.token.length > 1))
 }
@@ -322,37 +361,48 @@ const SHIFTED_RX = /[~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?]/
 
 function spatialMatchHelper(password: string, graph: AdjacencyGraph, graphName: string): SpatialMatch[] {
     const matches: SpatialMatch[] = []
+
     let i = 0
+
     while (i < password.length - 1) {
         let j = i + 1
         let lastDirection: number | null = null
         let turns = 0
+
         const isQwertyOrDvorak = graphName === "qwerty" || graphName === "dvorak"
+
         let shiftedCount = isQwertyOrDvorak && SHIFTED_RX.test(password.charAt(i)) ? 1 : 0
 
         // eslint-disable-next-line no-constant-condition
         while (true) {
             const prevChar = password.charAt(j - 1)
+
             let found = false
             let foundDirection = -1
             let curDirection = -1
+
             const adjacents = graph[prevChar] ?? []
 
             if (j < password.length) {
                 const curChar = password.charAt(j)
+
                 for (const adj of adjacents) {
                     curDirection++
+
                     if (adj !== null && adj.includes(curChar)) {
                         found = true
                         foundDirection = curDirection
+
                         if (adj.indexOf(curChar) === 1) {
                             // shifted key
                             shiftedCount++
                         }
+
                         if (lastDirection !== foundDirection) {
                             turns++
                             lastDirection = foundDirection
                         }
+
                         break
                     }
                 }
@@ -373,19 +423,24 @@ function spatialMatchHelper(password: string, graph: AdjacencyGraph, graphName: 
                         shifted_count: shiftedCount,
                     })
                 }
+
                 i = j
+
                 break
             }
         }
     }
+
     return matches
 }
 
 export function spatialMatch(password: string): SpatialMatch[] {
     const matches: SpatialMatch[] = []
+
     for (const [graphName, graph] of Object.entries(GRAPHS)) {
         extend(matches, spatialMatchHelper(password, graph, graphName))
     }
+
     return sorted(matches)
 }
 
@@ -395,17 +450,42 @@ export function spatialMatch(password: string): SpatialMatch[] {
 
 export function repeatMatch(password: string): RepeatMatch[] {
     const matches: RepeatMatch[] = []
+
+    // Early exit: if every character in the password is unique, no repeat
+    // patterns are possible. This avoids catastrophic backtracking on long
+    // strings of distinct characters (e.g. all-symbols passwords).
+    const charSet = new Set(password)
+
+    if (charSet.size === password.length) return matches
+
     const greedy = /(.+)\1+/g
     const lazy = /(.+?)\1+/g
-    const lazyAnchored = /^(.+?)\1+$/
+
+    // NOTE: /^(.+?)\1+$/ is ReDoS-vulnerable on certain inputs.
+    // We replace it with a safe string-based check: verify the greedy
+    // match token is a clean repetition by confirming it divides evenly.
+    const safeGetBaseToken = (token: string, lazyBase: string): string => {
+        // Try extending lazyBase up to half the token length
+        for (let len = lazyBase.length; len <= token.length / 2; len++) {
+            const candidate = token.slice(0, len)
+
+            if (candidate.length > 0 && token === candidate.repeat(token.length / candidate.length)) {
+                return candidate
+            }
+        }
+
+        return lazyBase
+    }
 
     let lastIndex = 0
+
     while (lastIndex < password.length) {
         greedy.lastIndex = lastIndex
         lazy.lastIndex = lastIndex
 
         const greedyMatch = greedy.exec(password)
         const lazyMatch = lazy.exec(password)
+
         if (!greedyMatch) break
 
         let match: RegExpExecArray
@@ -413,8 +493,8 @@ export function repeatMatch(password: string): RepeatMatch[] {
 
         if (greedyMatch[0].length > lazyMatch![0].length) {
             match = greedyMatch
-            const anchoredMatch = lazyAnchored.exec(match[0])
-            baseToken = anchoredMatch![1]
+
+            baseToken = safeGetBaseToken(match[0], lazyMatch![1])
         } else {
             match = lazyMatch!
             baseToken = match[1]
@@ -435,8 +515,10 @@ export function repeatMatch(password: string): RepeatMatch[] {
             base_matches: baseAnalysis.sequence,
             repeat_count: match[0].length / baseToken.length,
         })
+
         lastIndex = j + 1
     }
+
     return matches
 }
 
@@ -455,8 +537,10 @@ export function sequenceMatch(password: string): SequenceMatch[] {
         if (j - i > 1 || (Math.abs(delta) === 1 && delta !== 0)) {
             if (Math.abs(delta) > 0 && Math.abs(delta) <= MAX_DELTA) {
                 const token = password.slice(i, j + 1)
+
                 let sequenceName: string
                 let sequenceSpace: number
+
                 if (/^[a-z]+$/.test(token)) {
                     sequenceName = "lower"
                     sequenceSpace = 26
@@ -470,6 +554,7 @@ export function sequenceMatch(password: string): SequenceMatch[] {
                     sequenceName = "unicode"
                     sequenceSpace = 26
                 }
+
                 result.push({
                     pattern: "sequence",
                     i,
@@ -488,16 +573,24 @@ export function sequenceMatch(password: string): SequenceMatch[] {
 
     for (let k = 1; k < password.length; k++) {
         const delta = password.charCodeAt(k) - password.charCodeAt(k - 1)
+
         if (lastDelta === null) {
             lastDelta = delta
         }
+
         if (delta === lastDelta) continue
+
         const j = k - 1
+
         update(i, j, lastDelta)
+
         i = j
+
         lastDelta = delta
     }
+
     update(i, password.length - 1, lastDelta!)
+
     return result
 }
 
@@ -507,11 +600,14 @@ export function sequenceMatch(password: string): SequenceMatch[] {
 
 export function regexMatch(password: string, regexen: Record<string, RegExp> = REGEXEN): RegexMatch[] {
     const matches: RegexMatch[] = []
+
     for (const [name, rx] of Object.entries(regexen)) {
         rx.lastIndex = 0 // keeps regex stateless
         let rxMatch: RegExpExecArray | null
+
         while ((rxMatch = rx.exec(password)) !== null) {
             const token = rxMatch[0]
+
             matches.push({
                 pattern: "regex",
                 token,
@@ -522,6 +618,7 @@ export function regexMatch(password: string, regexen: Record<string, RegExp> = R
             })
         }
     }
+
     return sorted(matches)
 }
 
@@ -539,10 +636,12 @@ export function dateMatch(password: string): DateMatch[] {
     for (let i = 0; i <= password.length - 4; i++) {
         for (let j = i + 3; j <= i + 7 && j < password.length; j++) {
             const token = password.slice(i, j + 1)
+
             if (!maybeDateNoSep.test(token)) continue
 
             const candidates: Dmy[] = []
             const splits = DATE_SPLITS[token.length]
+
             if (!splits) continue
 
             for (const [k, l] of splits) {
@@ -551,16 +650,21 @@ export function dateMatch(password: string): DateMatch[] {
                     parseInt(token.slice(k, l)),
                     parseInt(token.slice(l)),
                 ])
+
                 if (dmy !== null) candidates.push(dmy)
             }
+
             if (candidates.length === 0) continue
 
             // Pick the candidate closest to REFERENCE_YEAR
             const refYear = new Date().getFullYear()
+
             let bestCandidate = candidates[0]
             let minDistance = Math.abs(candidates[0].year - refYear)
+
             for (const candidate of candidates.slice(1)) {
                 const distance = Math.abs(candidate.year - refYear)
+
                 if (distance < minDistance) {
                     bestCandidate = candidate
                     minDistance = distance
@@ -584,9 +688,13 @@ export function dateMatch(password: string): DateMatch[] {
         for (let j = i + 5; j <= i + 9 && j < password.length; j++) {
             const token = password.slice(i, j + 1)
             const rxMatch = maybeDateWithSep.exec(token)
+
             if (!rxMatch) continue
+
             const dmy = mapIntsToDmy([parseInt(rxMatch[1]), parseInt(rxMatch[3]), parseInt(rxMatch[4])])
+
             if (dmy === null) continue
+
             matches.push({
                 pattern: "date",
                 token,
@@ -604,6 +712,7 @@ export function dateMatch(password: string): DateMatch[] {
     return sorted(
         matches.filter((match) => {
             const isSub = matches.some((other) => other !== match && other.i <= match.i && other.j >= match.j)
+
             return !isSub
         }),
     )
@@ -621,15 +730,18 @@ interface Dmy {
 
 function mapIntsToDmy(ints: [number, number, number]): Dmy | null {
     if (ints[1] > 31 || ints[1] <= 0) return null
+
     let over12 = 0
     let over31 = 0
     let under1 = 0
+
     for (const i of ints) {
         if ((i > 99 && i < DATE_MIN_YEAR) || i > DATE_MAX_YEAR) return null
         if (i > 31) over31++
         if (i > 12) over12++
         if (i <= 0) under1++
     }
+
     if (over31 >= 2 || over12 === 3 || under1 >= 2) return null
 
     const possibleYearSplits: [number, [number, number]][] = [
@@ -640,6 +752,7 @@ function mapIntsToDmy(ints: [number, number, number]): Dmy | null {
     for (const [y, rest] of possibleYearSplits) {
         if (DATE_MIN_YEAR <= y && y <= DATE_MAX_YEAR) {
             const dm = mapIntsToDm(rest)
+
             if (dm !== null) {
                 return { year: y, month: dm.month, day: dm.day }
             } else {
@@ -651,6 +764,7 @@ function mapIntsToDmy(ints: [number, number, number]): Dmy | null {
     // No four-digit year; try two-digit year
     for (const [y, rest] of possibleYearSplits) {
         const dm = mapIntsToDm(rest)
+
         if (dm !== null) {
             return {
                 year: twoToFourDigitYear(y),
@@ -659,6 +773,7 @@ function mapIntsToDmy(ints: [number, number, number]): Dmy | null {
             }
         }
     }
+
     return null
 }
 
@@ -668,11 +783,13 @@ function mapIntsToDm(ints: [number, number]): { day: number; month: number } | n
             return { day: d, month: m }
         }
     }
+
     return null
 }
 
 function twoToFourDigitYear(year: number): number {
     if (year > 99) return year
     if (year > 50) return year + 1900
+
     return year + 2000
 }

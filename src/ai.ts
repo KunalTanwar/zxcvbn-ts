@@ -53,10 +53,7 @@ export function anthropic(options: AnthropicOptions = {}): AIProvider {
     return {
         async complete(systemPrompt, userPrompt) {
             const apiKey =
-                options.apiKey ??
-                (typeof process !== "undefined"
-                    ? process.env.ANTHROPIC_API_KEY
-                    : undefined)
+                options.apiKey ?? (typeof process !== "undefined" ? process.env.ANTHROPIC_API_KEY : undefined)
 
             if (!apiKey) {
                 throw new Error(
@@ -64,29 +61,25 @@ export function anthropic(options: AnthropicOptions = {}): AIProvider {
                 )
             }
 
-            const response = await fetch(
-                "https://api.anthropic.com/v1/messages",
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "x-api-key": apiKey,
-                        "anthropic-version": "2023-06-01",
-                    },
-                    body: JSON.stringify({
-                        model: options.model ?? "claude-haiku-4-5-20251001",
-                        max_tokens: options.maxTokens ?? 300,
-                        system: systemPrompt,
-                        messages: [{ role: "user", content: userPrompt }],
-                    }),
+            const response = await fetch("https://api.anthropic.com/v1/messages", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "x-api-key": apiKey,
+                    "anthropic-version": "2023-06-01",
                 },
-            )
+                body: JSON.stringify({
+                    model: options.model ?? "claude-haiku-4-5-20251001",
+                    max_tokens: options.maxTokens ?? 300,
+                    system: systemPrompt,
+                    messages: [{ role: "user", content: userPrompt }],
+                }),
+            })
 
             if (!response.ok) {
                 const err = await response.text()
-                throw new Error(
-                    `zxcvbnAI: Anthropic API error ${response.status}: ${err}`,
-                )
+
+                throw new Error(`zxcvbnAI: Anthropic API error ${response.status}: ${err}`)
             }
 
             const data = (await response.json()) as {
@@ -111,42 +104,32 @@ export interface OpenAIOptions {
 export function openai(options: OpenAIOptions = {}): AIProvider {
     return {
         async complete(systemPrompt, userPrompt) {
-            const apiKey =
-                options.apiKey ??
-                (typeof process !== "undefined"
-                    ? process.env.OPENAI_API_KEY
-                    : undefined)
+            const apiKey = options.apiKey ?? (typeof process !== "undefined" ? process.env.OPENAI_API_KEY : undefined)
 
             if (!apiKey) {
-                throw new Error(
-                    "zxcvbnAI: no OpenAI API key. Pass { apiKey } to openai() or set OPENAI_API_KEY.",
-                )
+                throw new Error("zxcvbnAI: no OpenAI API key. Pass { apiKey } to openai() or set OPENAI_API_KEY.")
             }
 
-            const response = await fetch(
-                "https://api.openai.com/v1/chat/completions",
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${apiKey}`,
-                    },
-                    body: JSON.stringify({
-                        model: options.model ?? "gpt-4o-mini",
-                        max_tokens: options.maxTokens ?? 300,
-                        messages: [
-                            { role: "system", content: systemPrompt },
-                            { role: "user", content: userPrompt },
-                        ],
-                    }),
+            const response = await fetch("https://api.openai.com/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${apiKey}`,
                 },
-            )
+                body: JSON.stringify({
+                    model: options.model ?? "gpt-4o-mini",
+                    max_tokens: options.maxTokens ?? 300,
+                    messages: [
+                        { role: "system", content: systemPrompt },
+                        { role: "user", content: userPrompt },
+                    ],
+                }),
+            })
 
             if (!response.ok) {
                 const err = await response.text()
-                throw new Error(
-                    `zxcvbnAI: OpenAI API error ${response.status}: ${err}`,
-                )
+
+                throw new Error(`zxcvbnAI: OpenAI API error ${response.status}: ${err}`)
             }
 
             const data = (await response.json()) as {
@@ -171,16 +154,10 @@ export interface GeminiOptions {
 export function gemini(options: GeminiOptions = {}): AIProvider {
     return {
         async complete(systemPrompt, userPrompt) {
-            const apiKey =
-                options.apiKey ??
-                (typeof process !== "undefined"
-                    ? process.env.GEMINI_API_KEY
-                    : undefined)
+            const apiKey = options.apiKey ?? (typeof process !== "undefined" ? process.env.GEMINI_API_KEY : undefined)
 
             if (!apiKey) {
-                throw new Error(
-                    "zxcvbnAI: no Gemini API key. Pass { apiKey } to gemini() or set GEMINI_API_KEY.",
-                )
+                throw new Error("zxcvbnAI: no Gemini API key. Pass { apiKey } to gemini() or set GEMINI_API_KEY.")
             }
 
             const model = options.model ?? "gemini-1.5-flash"
@@ -201,9 +178,7 @@ export function gemini(options: GeminiOptions = {}): AIProvider {
             if (!response.ok) {
                 const err = await response.text()
 
-                throw new Error(
-                    `zxcvbnAI: Gemini API error ${response.status}: ${err}`,
-                )
+                throw new Error(`zxcvbnAI: Gemini API error ${response.status}: ${err}`)
             }
 
             const data = (await response.json()) as {

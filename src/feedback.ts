@@ -19,6 +19,7 @@ export function getFeedback(score: number, sequence: Match[]): Feedback {
 
     // Tie feedback to the longest match for sequences with multiple matches
     let longestMatch = sequence[0]
+
     for (const match of sequence.slice(1)) {
         if (match.token.length > longestMatch.token.length) {
             longestMatch = match
@@ -34,6 +35,7 @@ export function getFeedback(score: number, sequence: Match[]): Feedback {
             suggestions: [extraFeedback, ...feedback.suggestions],
         }
     }
+
     return {
         warning: "",
         suggestions: [extraFeedback],
@@ -75,12 +77,14 @@ function getMatchFeedback(match: Match, isSoleMatch: boolean): Feedback | null {
 
         case "regex": {
             const rxm = match as RegexMatch
+
             if (rxm.regex_name === "recent_year") {
                 return {
                     warning: "Recent years are easy to guess",
                     suggestions: ["Avoid recent years", "Avoid years that are associated with you"],
                 }
             }
+
             return null
         }
 
@@ -98,6 +102,16 @@ function getMatchFeedback(match: Match, isSoleMatch: boolean): Feedback | null {
 function getDictionaryMatchFeedback(match: DictionaryMatch, isSoleMatch: boolean): Feedback {
     let warning = ""
 
+    if (match.dictionary_name === "user_inputs") {
+        return {
+            warning: "This password is on your personal info list — avoid using personal details",
+            suggestions: [
+                "Avoid words or phrases connected to yourself",
+                "Avoid information others might know about you",
+            ],
+        }
+    }
+
     if (match.dictionary_name === "passwords") {
         if (isSoleMatch && !match.l33t && !match.reversed) {
             if (match.rank <= 10) {
@@ -114,6 +128,10 @@ function getDictionaryMatchFeedback(match: DictionaryMatch, isSoleMatch: boolean
         if (isSoleMatch) {
             warning = "A word by itself is easy to guess"
         }
+    } else if (match.dictionary_name === "us_tv_and_film") {
+        if (isSoleMatch) {
+            warning = "TV show and film names are easy to guess"
+        }
     } else if (["surnames", "male_names", "female_names"].includes(match.dictionary_name)) {
         if (isSoleMatch) {
             warning = "Names and surnames by themselves are easy to guess"
@@ -126,7 +144,7 @@ function getDictionaryMatchFeedback(match: DictionaryMatch, isSoleMatch: boolean
     const word = match.token
 
     if (START_UPPER.test(word)) {
-        suggestions.push("Capitalization doesn't help very much")
+        suggestions.push("Capitalizing the first letter is a common pattern and doesn't add much security")
     } else if (ALL_UPPER.test(word) && word.toLowerCase() !== word) {
         suggestions.push("All-uppercase is almost as easy to guess as all-lowercase")
     }
@@ -135,7 +153,13 @@ function getDictionaryMatchFeedback(match: DictionaryMatch, isSoleMatch: boolean
         suggestions.push("Reversed words aren't much harder to guess")
     }
     if (match.l33t) {
-        suggestions.push("Predictable substitutions like '@' instead of 'a' don't help very much")
+        const subDisplay = match.sub_display
+
+        if (subDisplay) {
+            suggestions.push(`Predictable subsitutions like ${subDisplay} don't help very much`)
+        } else {
+            suggestions.push("Predictable substitutions like '@' instead of 'a' don't help very much")
+        }
     }
 
     return { warning, suggestions }

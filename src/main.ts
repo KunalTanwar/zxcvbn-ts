@@ -34,14 +34,34 @@ export function zxcvbn(password: string, userInputs: Array<string | number | boo
         throw new TypeError(`zxcvbn: password must be a string, got ${typeof password}`)
     }
 
+    // Guard against pathologically long inputs that would cause slow regex/DP.
+    // 128 chars covers all real-world passwords (bcrypt caps at 72) while
+    // preventing ReDoS attacks from specially crafted long strings.
+    if (password.length > 128) {
+        password = password.slice(0, 128)
+    }
+
     const start = Date.now()
 
     // ---- Sanitise user inputs -----------------------------------------------
     // Accept strings, numbers, and booleans; coerce to lowercase strings.
     const sanitizedInputs: string[] = []
+
     for (const arg of userInputs) {
         if (typeof arg === "string" || typeof arg === "number" || typeof arg === "boolean") {
-            sanitizedInputs.push(String(arg).toLowerCase())
+            const s = String(arg).toLowerCase()
+
+            // Skip entries longer than 100 chars — they're unlikely to match
+            // anything meaningful and could cause slow dictionary lookups.
+            if (s.length <= 100) {
+                sanitizedInputs.push(s)
+
+                const original = String(arg)
+
+                if (original !== s && original.length <= 100) {
+                    sanitizedInputs.push(original)
+                }
+            }
         }
     }
 

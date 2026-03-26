@@ -33,10 +33,12 @@ const MIN_SUBMATCH_GUESSES_MULTI_CHAR = 50
 function calcAverageDegree(graph: AdjacencyGraph): number {
     let total = 0
     let keys = 0
+
     for (const neighbors of Object.values(graph)) {
         total += neighbors.filter((n) => n !== null).length
         keys++
     }
+
     return total / keys
 }
 
@@ -54,12 +56,15 @@ const KEYPAD_STARTING_POSITIONS = Object.keys(adjacencyGraphs.keypad).length
 export function nCk(n: number, k: number): number {
     if (k > n) return 0
     if (k === 0) return 1
+
     let r = 1
+
     for (let d = 1; d <= k; d++) {
         r *= n
         r /= d
         n -= 1
     }
+
     return r
 }
 
@@ -72,9 +77,17 @@ export function log2(n: number): number {
 }
 
 export function factorial(n: number): number {
+    // JS doubles overflow to Infinity at n >= 171 — clamp to MAX_VALUE
+    // so downstream multiplication stays finite.
     if (n < 2) return 1
+
     let f = 1
-    for (let i = 2; i <= n; i++) f *= i
+
+    for (let i = 2; i <= n; i++) {
+        f *= i
+        if (f === Infinity) return Number.MAX_VALUE
+    }
+
     return f
 }
 
@@ -103,9 +116,11 @@ export function mostGuessableMatchSequence(password: string, matches: Match[], e
 
     // Group matches by their ending index j
     const matchesByJ: Match[][] = Array.from({ length: n }, () => [])
+
     for (const m of matches) {
         matchesByJ[m.j].push(m)
     }
+
     // Sort each bucket by starting index i for deterministic output
     for (const lst of matchesByJ) {
         lst.sort((a, b) => a.i - b.i)
@@ -123,20 +138,26 @@ export function mostGuessableMatchSequence(password: string, matches: Match[], e
     /** Update optimal state if the length-l sequence ending at m is a new best. */
     const update = (m: Match, l: number): void => {
         const k = m.j
+
         let pi = estimateGuesses(m, password)
+
         if (l > 1) {
             // Multiply by the product term of the preceding length-(l-1) sequence
             pi *= optimal.pi[m.i - 1][l - 1]
         }
+
         let g = factorial(l) * pi
+
         if (!excludeAdditive) {
             g += Math.pow(MIN_GUESSES_BEFORE_GROWING_SEQUENCE, l - 1)
         }
         // Check if any competing sequence with <= l matches beats this
+
         for (const [cL, cG] of Object.entries(optimal.g[k])) {
             if (Number(cL) > l) continue
             if (cG <= g) return
         }
+
         optimal.g[k][l] = g
         optimal.m[k][l] = m
         optimal.pi[k][l] = pi
@@ -145,13 +166,18 @@ export function mostGuessableMatchSequence(password: string, matches: Match[], e
     /** Evaluate all bruteforce matches ending at index k. */
     const bruteforceUpdate = (k: number): void => {
         const mBf = makeBruteforceMatch(0, k)
+
         update(mBf, 1)
+
         for (let i = 1; i <= k; i++) {
             const mBfi = makeBruteforceMatch(i, k)
+
             for (const [lStr, lastM] of Object.entries(optimal.m[i - 1])) {
                 const l = Number(lStr)
+
                 // Two adjacent bruteforce matches are never optimal
                 if ((lastM as Match).pattern === "bruteforce") continue
+
                 update(mBfi, l + 1)
             }
         }
@@ -167,19 +193,26 @@ export function mostGuessableMatchSequence(password: string, matches: Match[], e
     /** Walk back through optimal.m to reconstruct the best match sequence. */
     const unwind = (n: number): Match[] => {
         if (n === 0) return []
+
         const seq: Match[] = []
+
         let k = n - 1
         let l: number | undefined
         let g = Infinity
+
         const lastG = optimal.g[k]
+
         if (!lastG) return []
+
         for (const [candidateL, candidateG] of Object.entries(lastG)) {
             if (candidateG < g) {
                 l = Number(candidateL)
                 g = candidateG
             }
         }
+
         if (l === undefined) return []
+
         while (k >= 0) {
             const m = optimal.m[k][l]
             if (!m) break
@@ -187,6 +220,7 @@ export function mostGuessableMatchSequence(password: string, matches: Match[], e
             k = m.i - 1
             l -= 1
         }
+
         return seq
     }
 
@@ -202,6 +236,7 @@ export function mostGuessableMatchSequence(password: string, matches: Match[], e
                 update(m, 1)
             }
         }
+
         bruteforceUpdate(k)
     }
 
@@ -226,11 +261,13 @@ export function estimateGuesses(match: Match, password: string): number {
     if (match.guesses != null) return match.guesses
 
     let minGuesses = 1
+
     if (match.token.length < password.length) {
         minGuesses = match.token.length === 1 ? MIN_SUBMATCH_GUESSES_SINGLE_CHAR : MIN_SUBMATCH_GUESSES_MULTI_CHAR
     }
 
     let guesses: number
+
     switch (match.pattern) {
         case "bruteforce":
             guesses = bruteforceGuesses(match)
@@ -263,16 +300,20 @@ export function estimateGuesses(match: Match, password: string): number {
 
     match.guesses = Math.max(guesses, minGuesses)
     match.guesses_log10 = log10(match.guesses)
+
     return match.guesses
 }
 
 function bruteforceGuesses(match: BruteforceMatch): number {
     let guesses = Math.pow(BRUTEFORCE_CARDINALITY, match.token.length)
+
     if (guesses === Infinity || guesses === Number.POSITIVE_INFINITY) {
         guesses = Number.MAX_VALUE
     }
+
     const minGuesses =
         match.token.length === 1 ? MIN_SUBMATCH_GUESSES_SINGLE_CHAR + 1 : MIN_SUBMATCH_GUESSES_MULTI_CHAR + 1
+
     return Math.max(guesses, minGuesses)
 }
 
@@ -282,7 +323,9 @@ function repeatGuesses(match: RepeatMatch): number {
 
 function sequenceGuesses(match: SequenceMatch): number {
     const firstChr = match.token.charAt(0)
+
     let baseGuesses: number
+
     if (["a", "A", "z", "Z", "0", "1", "9"].includes(firstChr)) {
         baseGuesses = 4
     } else if (/^\d$/.test(firstChr)) {
@@ -290,7 +333,9 @@ function sequenceGuesses(match: SequenceMatch): number {
     } else {
         baseGuesses = 26
     }
+
     if (!match.ascending) baseGuesses *= 2
+
     return baseGuesses * match.token.length
 }
 
@@ -306,26 +351,34 @@ function regexGuesses(match: RegexMatch): number {
         digits: 10,
         symbols: 33,
     }
+
     if (match.regex_name in charClassBases) {
         return Math.pow(charClassBases[match.regex_name], match.token.length)
     }
+
     if (match.regex_name === "recent_year") {
         const yearSpace = Math.max(Math.abs(parseInt(match.regex_match[0]) - REFERENCE_YEAR), MIN_YEAR_SPACE)
+
         return yearSpace
     }
+
     return 1
 }
 
 function dateGuesses(match: DateMatch): number {
     const yearSpace = Math.max(Math.abs(match.year - REFERENCE_YEAR), MIN_YEAR_SPACE)
+
     let guesses = yearSpace * 365
+
     if (match.separator) guesses *= 4
+
     return guesses
 }
 
 function spatialGuesses(match: SpatialMatch): number {
     let s: number
     let d: number
+
     if (match.graph === "qwerty" || match.graph === "dvorak") {
         s = KEYBOARD_STARTING_POSITIONS
         d = KEYBOARD_AVERAGE_DEGREE
@@ -333,64 +386,88 @@ function spatialGuesses(match: SpatialMatch): number {
         s = KEYPAD_STARTING_POSITIONS
         d = KEYPAD_AVERAGE_DEGREE
     }
+
     let guesses = 0
+
     const L = match.token.length
     const t = match.turns
+
     for (let i = 2; i <= L; i++) {
         const possibleTurns = Math.min(t, i - 1)
+
         for (let j = 1; j <= possibleTurns; j++) {
             guesses += nCk(i - 1, j - 1) * s * Math.pow(d, j)
         }
     }
+
     if (match.shifted_count) {
         const S = match.shifted_count
         const U = match.token.length - match.shifted_count
+
         if (S === 0 || U === 0) {
             guesses *= 2
         } else {
             let shiftedVariations = 0
+
             for (let i = 1; i <= Math.min(S, U); i++) {
                 shiftedVariations += nCk(S + U, i)
             }
+
             guesses *= shiftedVariations
         }
     }
+
     return guesses
 }
 
 export function uppercaseVariations(match: DictionaryMatch): number {
     const word = match.token
+
     if (ALL_LOWER.test(word) || word.toLowerCase() === word) return 1
+
+    const lettersOnly = word.replace(/[^a-zA-Z]/g, "")
+
     for (const regex of [START_UPPER, END_UPPER, ALL_UPPER]) {
-        if (regex.test(word)) return 2
+        if (regex.test(lettersOnly)) return 2
     }
-    const U = [...word].filter((c) => /[A-Z]/.test(c)).length
-    const L = [...word].filter((c) => /[a-z]/.test(c)).length
+
+    const U = [...lettersOnly].filter((c) => /[A-Z]/.test(c)).length
+    const L = [...lettersOnly].filter((c) => /[a-z]/.test(c)).length
+
     let variations = 0
+
     for (let i = 1; i <= Math.min(U, L); i++) {
         variations += nCk(U + L, i)
     }
+
     return variations
 }
 
 export function l33tVariations(match: DictionaryMatch): number {
     if (!match.l33t) return 1
+
     let variations = 1
+
     for (const [subbed, unsubbed] of Object.entries(match.sub ?? {})) {
         const chrs = match.token.toLowerCase().split("")
         const S = chrs.filter((c) => c === subbed).length
         const U = chrs.filter((c) => c === unsubbed).length
+
         if (S === 0 || U === 0) {
             variations *= 2
         } else {
             const p = Math.min(U, S)
+
             let possibilities = 0
+
             for (let i = 1; i <= p; i++) {
                 possibilities += nCk(U + S, i)
             }
+
             variations *= possibilities
         }
     }
+
     return variations
 }
 
@@ -398,7 +475,9 @@ function dictionaryGuesses(match: DictionaryMatch): number {
     match.base_guesses = match.rank
     match.uppercase_variations = uppercaseVariations(match)
     match.l33t_variations = l33tVariations(match)
+
     const reversedVariations = match.reversed ? 2 : 1
+
     return match.base_guesses * match.uppercase_variations * match.l33t_variations * reversedVariations
 }
 

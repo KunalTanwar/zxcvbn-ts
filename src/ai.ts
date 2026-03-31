@@ -1,9 +1,9 @@
 import { zxcvbn } from "./main"
 import type { ZxcvbnResult, Match } from "./types"
 
-// ============================================================
-// Public types
-// ============================================================
+// ======================= //
+// Public Types            //
+// ======================= //
 
 export interface AIFeedback {
     warning: string
@@ -19,7 +19,7 @@ export interface ZxcvbnAIResult extends ZxcvbnResult {
 /**
  * A provider is anything with a complete(system, user) method
  * that returns the raw text response from the model.
- */
+ **/
 export interface AIProvider {
     complete(systemPrompt: string, userPrompt: string): Promise<string>
 }
@@ -27,11 +27,11 @@ export interface AIProvider {
 export interface ZxcvbnAIOptions {
     /**
      * The AI provider to use. Use one of the built-in helpers:
-     *   anthropic(), openai(), gemini()
+     *     anthropic(), openai(), gemini()
      * or supply a custom adapter with a complete() method.
      *
      * Falls back to anthropic() using ANTHROPIC_API_KEY env var if omitted.
-     */
+     **/
     provider?: AIProvider
 }
 
@@ -192,9 +192,9 @@ export function gemini(options: GeminiOptions = {}): AIProvider {
     }
 }
 
-// ============================================================
-// Shared prompt
-// ============================================================
+// ================================================ //
+// Shared Prompt                                    //
+// ================================================ //
 
 function describeSequence(sequence: Match[]): string {
     return sequence
@@ -212,6 +212,8 @@ function describeSequence(sequence: Match[]): string {
                     return `"${m.token}" matches a predictable pattern (${m.regex_name.replace(/_/g, " ")})`
                 case "date":
                     return `"${m.token}" looks like a date (${m.year}-${m.month}-${m.day})`
+                case "phone":
+                    return `"${m.token}" looks like a phone number (${m.phone_format} format)`
                 case "bruteforce":
                     return `"${m.token}" has no recognisable pattern`
             }
@@ -261,7 +263,7 @@ Respond with raw JSON only — no markdown, no backticks, no preamble.`
  *   }
  * });
  * ```
- */
+ **/
 export async function zxcvbnAI(
     password: string,
     options: ZxcvbnAIOptions = {},
@@ -275,7 +277,7 @@ export async function zxcvbnAI(
         `Strength score: ${base.score}/4`,
         `Estimated guesses: ${base.guesses_log10.toFixed(1)} (log10)`,
         `Pattern analysis: ${describeSequence(base.sequence)}`,
-        `Crack time (offline fast attack): ${base.crack_times_display.offline_fast_hashing_1e10_per_second}`,
+        `Crack time (offline fast attack): ${base.crack_times_display.offline_fast_hashing_1e11_per_second}`,
         ``,
         `Provide feedback for this password.`,
     ].join("\n")

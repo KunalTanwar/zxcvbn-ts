@@ -1,7 +1,3 @@
-// ============================================================
-// zxcvbn-ts — Scoring
-// ============================================================
-
 import adjacencyGraphs from "./adjacency_graphs"
 import type {
     Match,
@@ -14,6 +10,7 @@ import type {
     DateMatch,
     BruteforceMatch,
     AdjacencyGraph,
+    PhoneMatch,
 } from "./types"
 
 // ----------------------------------------------------------------
@@ -29,7 +26,7 @@ const MIN_SUBMATCH_GUESSES_MULTI_CHAR = 50
 // Helpers
 // ----------------------------------------------------------------
 
-/** Average adjacency degree for a keyboard graph. */
+// Average adjacency degree for a keyboard graph
 function calcAverageDegree(graph: AdjacencyGraph): number {
     let total = 0
     let keys = 0
@@ -52,7 +49,7 @@ const KEYPAD_STARTING_POSITIONS = Object.keys(adjacencyGraphs.keypad).length
 // Math utilities
 // ----------------------------------------------------------------
 
-/** Binomial coefficient C(n, k). */
+// Binomial coefficient C(n, k)
 export function nCk(n: number, k: number): number {
     if (k > n) return 0
     if (k === 0) return 1
@@ -110,7 +107,7 @@ const ALL_LOWER = /^[^A-Z]+$/
  *
  * Uses a dynamic programming approach: O(l_max * (n + m)) where n = password
  * length, m = number of matches.
- */
+ **/
 export function mostGuessableMatchSequence(password: string, matches: Match[], excludeAdditive = false): ScoringResult {
     const n = password.length
 
@@ -135,7 +132,7 @@ export function mostGuessableMatchSequence(password: string, matches: Match[], e
         g: Array.from({ length: n }, () => ({}) as Record<number, number>),
     }
 
-    /** Update optimal state if the length-l sequence ending at m is a new best. */
+    // Update optimal state if the length-l sequence ending at m is a new best
     const update = (m: Match, l: number): void => {
         const k = m.j
 
@@ -163,7 +160,7 @@ export function mostGuessableMatchSequence(password: string, matches: Match[], e
         optimal.pi[k][l] = pi
     }
 
-    /** Evaluate all bruteforce matches ending at index k. */
+    // Evaluate all bruteforce matches ending at index k.
     const bruteforceUpdate = (k: number): void => {
         const mBf = makeBruteforceMatch(0, k)
 
@@ -190,7 +187,7 @@ export function mostGuessableMatchSequence(password: string, matches: Match[], e
         j,
     })
 
-    /** Walk back through optimal.m to reconstruct the best match sequence. */
+    // Walk back through optimal.m to reconstruct the best match sequence
     const unwind = (n: number): Match[] => {
         if (n === 0) return []
 
@@ -289,6 +286,10 @@ export function estimateGuesses(match: Match, password: string): number {
             break
         case "date":
             guesses = dateGuesses(match)
+            break
+
+        case "phone":
+            guesses = phoneGuesses(match)
             break
         default: {
             // Exhaustive type check
@@ -479,6 +480,20 @@ function dictionaryGuesses(match: DictionaryMatch): number {
     const reversedVariations = match.reversed ? 2 : 1
 
     return match.base_guesses * match.uppercase_variations * match.l33t_variations * reversedVariations
+}
+
+function phoneGuesses(match: PhoneMatch): number {
+    // Phone numbers are enumerated by area code + exchange.
+    // NANP: ~800 area codes × 10,000 exchanges = 8,000,000
+    // International / local: ~10,000,000
+    switch (match.phone_format) {
+        case "nanp":
+            return 8_000_000
+        case "international":
+            return 10_000_000
+        default:
+            return 10_000_000
+    }
 }
 
 // Export constants needed by other modules

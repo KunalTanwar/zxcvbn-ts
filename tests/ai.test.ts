@@ -1,4 +1,3 @@
-// tests/ai.test.ts
 import { describe, expect, test, mock, beforeEach, afterEach } from "bun:test"
 import { zxcvbnAI, anthropic, openai, gemini } from "../src/ai"
 import type { AIProvider } from "../src/ai"
@@ -67,10 +66,8 @@ describe("anthropic() provider", () => {
 
         global.fetch = mock(async (url: string) => {
             capturedUrl = url
-            return new Response(
-                JSON.stringify(anthropicResponse(MOCK_FEEDBACK)),
-                { status: 200 },
-            )
+
+            return new Response(JSON.stringify(anthropicResponse(MOCK_FEEDBACK)), { status: 200 })
         }) as unknown as typeof fetch
 
         await zxcvbnAI("password", {
@@ -85,10 +82,8 @@ describe("anthropic() provider", () => {
 
         global.fetch = mock(async (_url: string, init?: RequestInit) => {
             capturedHeaders = init?.headers as Record<string, string>
-            return new Response(
-                JSON.stringify(anthropicResponse(MOCK_FEEDBACK)),
-                { status: 200 },
-            )
+
+            return new Response(JSON.stringify(anthropicResponse(MOCK_FEEDBACK)), { status: 200 })
         }) as unknown as typeof fetch
 
         await zxcvbnAI("password", {
@@ -103,9 +98,7 @@ describe("anthropic() provider", () => {
 
         mockFetch(anthropicResponse(MOCK_FEEDBACK))
 
-        await expect(
-            zxcvbnAI("password", { provider: anthropic() }),
-        ).resolves.toBeTruthy()
+        await expect(zxcvbnAI("password", { provider: anthropic() })).resolves.toBeTruthy()
 
         delete process.env.ANTHROPIC_API_KEY
     })
@@ -113,17 +106,13 @@ describe("anthropic() provider", () => {
     test("throws if no Anthropic key provided", async () => {
         delete process.env.ANTHROPIC_API_KEY
 
-        await expect(
-            zxcvbnAI("password", { provider: anthropic() }),
-        ).rejects.toThrow("Anthropic API key")
+        await expect(zxcvbnAI("password", { provider: anthropic() })).rejects.toThrow("Anthropic API key")
     })
 
     test("throws on non-200 response", async () => {
         mockFetch({ error: "unauthorized" }, 401)
 
-        await expect(
-            zxcvbnAI("password", { provider: anthropic({ apiKey: "bad" }) }),
-        ).rejects.toThrow("401")
+        await expect(zxcvbnAI("password", { provider: anthropic({ apiKey: "bad" }) })).rejects.toThrow("401")
     })
 
     test("respects custom model option", async () => {
@@ -132,10 +121,7 @@ describe("anthropic() provider", () => {
         global.fetch = mock(async (_url: string, init?: RequestInit) => {
             body = JSON.parse(init?.body as string)
 
-            return new Response(
-                JSON.stringify(anthropicResponse(MOCK_FEEDBACK)),
-                { status: 200 },
-            )
+            return new Response(JSON.stringify(anthropicResponse(MOCK_FEEDBACK)), { status: 200 })
         }) as unknown as typeof fetch
 
         await zxcvbnAI("password", {
@@ -167,6 +153,7 @@ describe("openai() provider", () => {
 
         global.fetch = mock(async (url: string) => {
             capturedUrl = url
+
             return new Response(JSON.stringify(openaiResponse(MOCK_FEEDBACK)), {
                 status: 200,
             })
@@ -182,6 +169,7 @@ describe("openai() provider", () => {
 
         global.fetch = mock(async (_url: string, init?: RequestInit) => {
             capturedHeaders = init?.headers as Record<string, string>
+
             return new Response(JSON.stringify(openaiResponse(MOCK_FEEDBACK)), {
                 status: 200,
             })
@@ -199,9 +187,7 @@ describe("openai() provider", () => {
 
         mockFetch(openaiResponse(MOCK_FEEDBACK))
 
-        await expect(
-            zxcvbnAI("password", { provider: openai() }),
-        ).resolves.toBeTruthy()
+        await expect(zxcvbnAI("password", { provider: openai() })).resolves.toBeTruthy()
 
         delete process.env.OPENAI_API_KEY
     })
@@ -209,9 +195,7 @@ describe("openai() provider", () => {
     test("throws if no OpenAI key provided", async () => {
         delete process.env.OPENAI_API_KEY
 
-        await expect(
-            zxcvbnAI("password", { provider: openai() }),
-        ).rejects.toThrow("OpenAI API key")
+        await expect(zxcvbnAI("password", { provider: openai() })).rejects.toThrow("OpenAI API key")
     })
 
     test("respects custom model option", async () => {
@@ -219,6 +203,7 @@ describe("openai() provider", () => {
 
         global.fetch = mock(async (_url: string, init?: RequestInit) => {
             body = JSON.parse(init?.body as string)
+
             return new Response(JSON.stringify(openaiResponse(MOCK_FEEDBACK)), {
                 status: 200,
             })
@@ -250,6 +235,7 @@ describe("gemini() provider", () => {
 
         global.fetch = mock(async (url: string) => {
             capturedUrl = url
+
             return new Response(JSON.stringify(geminiResponse(MOCK_FEEDBACK)), {
                 status: 200,
             })
@@ -266,9 +252,7 @@ describe("gemini() provider", () => {
 
         mockFetch(geminiResponse(MOCK_FEEDBACK))
 
-        await expect(
-            zxcvbnAI("password", { provider: gemini() }),
-        ).resolves.toBeTruthy()
+        await expect(zxcvbnAI("password", { provider: gemini() })).resolves.toBeTruthy()
 
         delete process.env.GEMINI_API_KEY
     })
@@ -276,9 +260,7 @@ describe("gemini() provider", () => {
     test("throws if no Gemini key provided", async () => {
         delete process.env.GEMINI_API_KEY
 
-        await expect(
-            zxcvbnAI("password", { provider: gemini() }),
-        ).rejects.toThrow("Gemini API key")
+        await expect(zxcvbnAI("password", { provider: gemini() })).rejects.toThrow("Gemini API key")
     })
 
     test("respects custom model option", async () => {
@@ -286,6 +268,7 @@ describe("gemini() provider", () => {
 
         global.fetch = mock(async (url: string) => {
             capturedUrl = url
+
             return new Response(JSON.stringify(geminiResponse(MOCK_FEEDBACK)), {
                 status: 200,
             })
@@ -321,6 +304,7 @@ describe("custom adapter", () => {
             complete: mock(async (system, user) => {
                 capturedSystem = system
                 capturedUser = user
+
                 return MOCK_FEEDBACK
             }),
         }
@@ -370,17 +354,9 @@ describe("zxcvbnAI() — shared behaviour", () => {
     })
 
     test("userInputs are penalised", async () => {
-        const withInput = await zxcvbnAI(
-            "alice2024",
-            { provider: anthropic({ apiKey: "test" }) },
-            ["alice"],
-        )
+        const withInput = await zxcvbnAI("alice2024", { provider: anthropic({ apiKey: "test" }) }, ["alice"])
 
-        const without = await zxcvbnAI(
-            "alice2024",
-            { provider: anthropic({ apiKey: "test" }) },
-            [],
-        )
+        const without = await zxcvbnAI("alice2024", { provider: anthropic({ apiKey: "test" }) }, [])
 
         expect(withInput.guesses).toBeLessThanOrEqual(without.guesses)
     })

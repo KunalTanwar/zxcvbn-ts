@@ -1,9 +1,5 @@
-// ============================================================
-// zxcvbn-ts — Feedback
-// ============================================================
-
 import { START_UPPER, ALL_UPPER } from "./scoring"
-import type { Match, Feedback, DictionaryMatch, SpatialMatch, RepeatMatch, RegexMatch } from "./types"
+import type { Match, Feedback, DictionaryMatch, SpatialMatch, RepeatMatch, RegexMatch, PhoneMatch } from "./types"
 
 const DEFAULT_FEEDBACK: Feedback = {
     warning: "",
@@ -94,6 +90,22 @@ function getMatchFeedback(match: Match, isSoleMatch: boolean): Feedback | null {
                 suggestions: ["Avoid dates and years that are associated with you"],
             }
 
+        case "phone":
+            const pm = match as PhoneMatch
+            const fmt =
+                pm.phone_format === "nanp"
+                    ? "North American phone numbers"
+                    : pm.phone_format === "international"
+                      ? "International phone numbers"
+                      : "Phone numbers"
+
+            return {
+                warning: `${fmt} are easy to guess`,
+                suggestions: [
+                    "Avoid using phone numbers in your password",
+                    "Phone numbers can be looked up or guessed by area code",
+                ],
+            }
         default:
             return null
     }
@@ -156,7 +168,7 @@ function getDictionaryMatchFeedback(match: DictionaryMatch, isSoleMatch: boolean
         const subDisplay = match.sub_display
 
         if (subDisplay) {
-            suggestions.push(`Predictable subsitutions like ${subDisplay} don't help very much`)
+            suggestions.push(`Predictable substiutions like '${subDisplay}' don't help very much`)
         } else {
             suggestions.push("Predictable substitutions like '@' instead of 'a' don't help very much")
         }

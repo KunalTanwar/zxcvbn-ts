@@ -1,8 +1,4 @@
-// ============================================================
-// zxcvbn-ts — Types
-// ============================================================
-
-/** Keyboard graph: maps each character to its adjacent key-groups. */
+/** Keyboard graph: maps each character to its adjacent key-groups. **/
 export type AdjacencyGraph = Readonly<Record<string, ReadonlyArray<string | null>>>
 
 export interface AdjacencyGraphs {
@@ -12,19 +8,18 @@ export interface AdjacencyGraphs {
     readonly mac_keypad: AdjacencyGraph
 }
 
-/** A ranked dictionary maps word → rank (1-based). */
+/** A ranked dictionary maps word → rank (1-based). **/
 export type RankedDictionary = Readonly<Record<string, number>>
 
-/** All named ranked dictionaries. */
+/** All named ranked dictionaries. **/
 export type RankedDictionaries = Record<string, RankedDictionary>
 
 // ----------------------------------------------------------------
 // Match pattern types
 // ----------------------------------------------------------------
+export type PatternName = "bruteforce" | "dictionary" | "spatial" | "repeat" | "sequence" | "regex" | "date" | "phone"
 
-export type PatternName = "bruteforce" | "dictionary" | "spatial" | "repeat" | "sequence" | "regex" | "date"
-
-/** Base fields shared by every match. */
+/** Base fields shared by every match. **/
 interface BaseMatch {
     readonly pattern: PatternName
     i: number
@@ -88,6 +83,14 @@ export interface DateMatch extends BaseMatch {
     day: number
 }
 
+export interface PhoneMatch extends BaseMatch {
+    readonly pattern: "phone"
+    // Normalized digits only, e.g. "8525559630"
+    readonly phone_number: string
+    // The format detected, e.g. "nanp", "international", "local"
+    readonly phone_format: string
+}
+
 export type Match =
     | BruteforceMatch
     | DictionaryMatch
@@ -96,10 +99,11 @@ export type Match =
     | SequenceMatch
     | RegexMatch
     | DateMatch
+    | PhoneMatch
 
-// ----------------------------------------------------------------
-// Scoring result
-// ----------------------------------------------------------------
+// -------------------------- //
+// Scoring Result             //
+// -------------------------- //
 
 export interface ScoringResult {
     password: string
@@ -108,53 +112,86 @@ export interface ScoringResult {
     sequence: Match[]
 }
 
-// ----------------------------------------------------------------
-// Attack times
-// ----------------------------------------------------------------
+// ------------------------------ //
+// Attack Times                   //
+// ------------------------------ //
 
 export interface CrackTimesSeconds {
     readonly online_throttling_100_per_hour: number
     readonly online_no_throttling_10_per_second: number
-    readonly offline_slow_hashing_1e4_per_second: number
-    readonly offline_fast_hashing_1e10_per_second: number
+    readonly offline_slow_hashing_1e5_per_second: number
+    readonly offline_fast_hashing_1e11_per_second: number
 }
 
 export interface CrackTimesDisplay {
     readonly online_throttling_100_per_hour: string
     readonly online_no_throttling_10_per_second: string
-    readonly offline_slow_hashing_1e4_per_second: string
-    readonly offline_fast_hashing_1e10_per_second: string
+    readonly offline_slow_hashing_1e5_per_second: string
+    readonly offline_fast_hashing_1e11_per_second: string
+}
+
+/**
+ * Estimated cost to crack the password under each attack scenario.
+ * Costs are in USD, based on approximate "2025" cloud GPU rental rates.
+ * Use `displayCost()` from `zxcvbn-ts` for human-readable strings.
+ **/
+export interface CrackTimesCost {
+    // ~$0.001/hr throttled online attack (negligible infrastructure)
+    readonly online_throttling_100_per_hour: number
+    // ~$0.01/hr unthrottled online attack
+    readonly online_no_throttling_10_per_second: number
+    // ~$0.50/hr offline attack with slow hashing (bcrypt, scrypt)
+    readonly offline_slow_hashing_1e5_per_second: number
+    // ~$3.00/hr offline attack with fast hashing (MD5, SHA1) on GPU
+    readonly offline_fast_hashing_1e11_per_second: number
 }
 
 export interface AttackTimes {
     readonly crack_times_seconds: CrackTimesSeconds
     readonly crack_times_display: CrackTimesDisplay
-    /** 0 – 4 */
+    // Estimated USD cost to crack under each attack scenario
+    readonly crack_times_cost: CrackTimesCost
+    // 0 - 4
     readonly score: 0 | 1 | 2 | 3 | 4
 }
 
-// ----------------------------------------------------------------
-// Feedback
-// ----------------------------------------------------------------
+// --------------------- //
+// Feedback              //
+// --------------------- //
 
 export interface Feedback {
     readonly warning: string
     readonly suggestions: readonly string[]
 }
 
-// ----------------------------------------------------------------
-// Final zxcvbn result
-// ----------------------------------------------------------------
+// -------------------------- //
+// Final zxcvbn result        //
+// -------------------------- //
+
+export interface ZxcvbnOptions {
+    /**
+     * Minimum password length. If the password is shorter than this value,
+     * the score is overridden to 0 and a suggestion is added regardless of
+     * how strong the password would otherwise be.
+     *
+     * @default undefined (no minimum enforced)
+     *
+     * @example
+     * zxcvbn("abc", [], { minLength: 8 })
+     * score: 0, feedback includes "Password must be at least 8 characters"
+     **/
+    minLength?: number
+}
 
 export interface ZxcvbnResult extends ScoringResult, AttackTimes {
     readonly feedback: Feedback
-    /** Milliseconds taken to compute. */
+    /** Milliseconds taken to compute. **/
     readonly calc_time: number
 }
 
-// ----------------------------------------------------------------
-// L33t table
-// ----------------------------------------------------------------
+// ------------------------------------------------------------- //
+// L33t table                                                    //
+// ------------------------------------------------------------- //
 export type L33tTable = Readonly<Record<string, readonly string[]>>
 
 export interface FrequencyLists {

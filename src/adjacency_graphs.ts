@@ -1,8 +1,3 @@
-// ============================================================
-// zxcvbn-ts — Adjacency Graphs
-// Generated from keyboard layout data
-// ============================================================
-
 import type { AdjacencyGraphs } from "./types"
 
 const adjacencyGraphs: AdjacencyGraphs = {

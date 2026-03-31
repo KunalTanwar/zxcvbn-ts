@@ -1,6 +1,6 @@
 {
     "name": "zxcvbn-ts",
-    "version": "1.3.0",
+    "version": "2.0.0",
     "description": "TypeScript rewrite of the zxcvbn password strength estimator",
     "author": "Kunal Tanwar",
     "license": "MIT",

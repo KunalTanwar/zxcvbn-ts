@@ -1,7 +1,3 @@
-// ============================================================
-// zxcvbn-ts — Matching
-// ============================================================
-
 import frequencyLists from "./frequency_lists"
 import adjacencyGraphs from "./adjacency_graphs"
 import { mostGuessableMatchSequence } from "./scoring"
@@ -13,6 +9,7 @@ import type {
     SequenceMatch,
     RegexMatch,
     DateMatch,
+    PhoneMatch,
     RankedDictionary,
     RankedDictionaries,
     L33tTable,
@@ -162,6 +159,7 @@ export function omnimatch(password: string): Match[] {
         sequenceMatch,
         regexMatch,
         dateMatch,
+        phoneMatch,
     ]
 
     for (const matcher of matchers) {
@@ -792,4 +790,71 @@ function twoToFourDigitYear(year: number): number {
     if (year > 50) return year + 1900
 
     return year + 2000
+}
+
+// ----------------------------------------------------------------
+// Phone number matching (#105)
+// ----------------------------------------------------------------
+
+/**
+ * Common phone number formats as named regex patterns.
+ *
+ * Formats covered:
+ * - NANP:          (852) 555-9630 | 852-555-9630 | 8525559630
+ * - International: +44 20 7946 0958 | +442079460958
+ * - Local (short): 555-9630 | 5559630
+ **/
+const PHONE_REGEXES: Array<{ name: string; rx: RegExp; digits: number }> = [
+    {
+        name: "nanp",
+        rx: /(?:\+?1[-. ]?)?(?:\(?\d{3}\)?[-. ]?)\d{3}[-. ]?\d{4}/g,
+        digits: 10,
+    },
+    {
+        name: "international",
+        rx: /\+(?:\d{1,3})[-. ]?(?:\d[-. ]?){6,12}\d/g,
+        digits: 8,
+    },
+    {
+        name: "local",
+        rx: /\b\d{3}[-. ]\d{4}\b/g,
+        digits: 7,
+    },
+]
+
+function extractDigits(str: string): string {
+    return str.replace(/\D/g, "")
+}
+
+/**
+ * Match phone number patterns within the password.
+ * Phone numbers are weak — attackers enumerate by area code,
+ * making even 10-digit numbers guessable in practice.
+ **/
+export function phoneMatch(password: string): PhoneMatch[] {
+    const matches: PhoneMatch[] = []
+
+    for (const { name, rx, digits } of PHONE_REGEXES) {
+        rx.lastIndex = 0
+
+        let m: RegExpExecArray | null
+
+        while ((m = rx.exec(password)) !== null) {
+            const token = m[0]
+            const phoneNumber = extractDigits(token)
+
+            if (phoneNumber.length < digits) continue
+
+            matches.push({
+                pattern: "phone",
+                i: m.index,
+                j: m.index + token.length - 1,
+                token,
+                phone_number: phoneNumber,
+                phone_format: name,
+            })
+        }
+    }
+
+    return sorted(matches)
 }

@@ -1,15 +1,13 @@
-// ============================================================
-// zxcvbn-ts — Public API barrel
-// ============================================================
-
 export { zxcvbn as default, zxcvbn } from "./main"
 
 // Types
 export type {
     ZxcvbnResult,
+    ZxcvbnOptions,
     AttackTimes,
     CrackTimesSeconds,
     CrackTimesDisplay,
+    CrackTimesCost,
     Feedback,
     Match,
     BruteforceMatch,
@@ -19,6 +17,7 @@ export type {
     SequenceMatch,
     RegexMatch,
     DateMatch,
+    PhoneMatch,
     PatternName,
     RankedDictionary,
     RankedDictionaries,
@@ -39,7 +38,8 @@ export {
     sequenceMatch,
     regexMatch,
     dateMatch,
+    phoneMatch,
     setUserInputDictionary,
 } from "./matching"
-export { estimateAttackTimes, guessesToScore, displayTime } from "./time_estimates"
+export { estimateAttackTimes, guessesToScore, displayTime, displayCost } from "./time_estimates"
 export { getFeedback } from "./feedback"

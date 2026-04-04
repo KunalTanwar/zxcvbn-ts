@@ -2,8 +2,6 @@
 
 All notable changes to **zxcvbn-ts** are documented here.
 
----
-
 ## [2.0.0] — 2025
 
 ### ⚠️ Breaking changes
@@ -50,8 +48,6 @@ All notable changes to **zxcvbn-ts** are documented here.
 - **Generic l33t substitution suggestion (#128)** — suggestion now shows the actual substitution used (e.g. `"3 -> e"`) instead of always `"@" instead of "a"`.
 - **Confusing capitalisation suggestion (#116)** — reworded to _"Capitalizing the first letter is a common pattern and doesn't add much security"_.
 
----
-
 ## [1.3.0] — 2025
 
 ### Features
@@ -78,8 +74,6 @@ All notable changes to **zxcvbn-ts** are documented here.
 - **`recent_year` regex out of date (#318)** — updated from `/19\d\d|200\d|201\d/` to `/19\d\d|20[0-3]\d/`. Years 2020–2039 now correctly detected.
 - **Factorial overflow in scoring** — `factorial()` now clamps to `Number.MAX_VALUE` before returning `Infinity`.
 
----
-
 ## [1.2.2] — 2025
 
 ### Features
@@ -102,8 +96,6 @@ All notable changes to **zxcvbn-ts** are documented here.
 - **Reduced unpacked size from 7.72MB to 1.1MB** — frequency lists moved from compiled TypeScript to a single minified JSON file (`dist/data/frequency_lists.json`) shipped once instead of once per build target.
 - **Source maps removed from published package** — further reduces install footprint.
 
----
-
 ## [1.1.0] — 2025
 
 ### Features
@@ -116,8 +108,6 @@ All notable changes to **zxcvbn-ts** are documented here.
 - **Empty password crash** — `unwind(0)` now returns `[]` instead of throwing.
 - **Non-string input silently coerced** — `zxcvbn()` now throws `TypeError` for non-string passwords.
 - **`$` key unquoted in adjacency graph** — corrected to `"$"` for consistency.
-
----
 
 ## [1.0.0] — 2025
 

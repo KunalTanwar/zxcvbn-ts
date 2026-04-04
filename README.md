@@ -20,7 +20,7 @@ A complete TypeScript rewrite of Dropbox's [zxcvbn](https://github.com/dropbox/z
 - **Cost-to-Crack Estimates** - `crack_times_cost` field with USD estimates alongside crack time
 - **Updated 2025 Threat Model** — attack rates reflect modern RTX 4090 GPU benchmarks
 - **Bun-native** — uses `bun test` and `bun run` throughout
-- **16+ Bug Fixes** over the original CoffeeScript source (see [Changes from original](#changes-from-original))
+- **16+ Bug Fixes** over the original CoffeeScript source (see [Changes from original](#issues-from-original-zxcvbn))
 - **Same Algorithm** — results are numerically identical to the original library
 
 ## Installation
@@ -387,28 +387,6 @@ dist/
   esm/      ← ES Modules (import)
   types/    ← .d.ts declarations + source maps
 ```
-
-## Changes from original
-
-| #   | File                  | Change                                                                                                                                                                                      |
-| --- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | `scoring.ts`          | `unwind()` crashed on empty password (`n=0`) — guarded with early return                                                                                                                    |
-| 2   | `main.ts`             | Non-string `password` was silently coerced — now throws `TypeError`                                                                                                                         |
-| 3   | `matching.ts`         | `sorted()` erased match subtypes — now generic `sorted<T extends Match>()`                                                                                                                  |
-| 4   | `matching.ts`         | Lazy `initRankedDictionaries()` short-circuited when `setUserInputDictionary` ran first, causing all dictionary matching to silently fail — replaced with eager module-level initialisation |
-| 5   | `matching.ts`         | `REFERENCE_YEAR` recomputed on every call — moved to module load time                                                                                                                       |
-| 6   | `frequency_lists.ts`  | Stub returning empty arrays replaced with full 93,855-word dataset                                                                                                                          |
-| 7   | `adjacency_graphs.ts` | Bare `$` key corrected to `"$"` for consistency                                                                                                                                             |
-| 8   | `feedback.ts`         | Unused imports removed                                                                                                                                                                      |
-| 9   | `feedback.ts`         | No warning when password matches `user_inputs` dictionary — specific warning and suggestions now returned (#231)                                                                            |
-| 10  | `scoring.ts`          | `uppercaseVariations` inflated guess counts for tokens starting/ending with digits — non-letter chars now stripped before computing multiplier (#232)                                       |
-| 11  | `main.ts`             | Uppercase variants of user inputs bypassed penalty — original-cased inputs now also added to the ranked dictionary (#267)                                                                   |
-| 12  | `matching.ts`         | `recent_year` regex only matched up to 2019 — updated to cover 2000–2039 (#318)                                                                                                             |
-| 13  | `matching.ts`         | ReDoS via `^(.+?)\\1+$` in `repeatMatch` — replaced with safe string comparison (#327)                                                                                                      |
-| 14  | `matching.ts`         | l33t substitution combinatorial explosion — capped at 4 distinct l33t chars (#316)                                                                                                          |
-| 15  | `matching.ts`         | `repeatMatch` slow on all-unique strings — early exit added (#316)                                                                                                                          |
-| 16  | `main.ts`             | No input length limits — password capped at 128 chars, userInput entries at 100 chars (#326)                                                                                                |
-| 17  | `scoring.ts`          | `factorial()` returned `Infinity` for n ≥ 171 — now clamps to `Number.MAX_VALUE`                                                                                                            |
 
 ## Issues from original zxcvbn
 

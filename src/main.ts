@@ -70,7 +70,7 @@ export function zxcvbn(
 
     const result = mostGuessableMatchSequence(password, matches)
 
-    const attackTimes = estimateAttackTimes(result.guesses)
+    const attackTimes = estimateAttackTimes(result.guesses, options.customHashesPerSecond)
 
     let feedback = getFeedback(attackTimes.score, result.sequence)
 

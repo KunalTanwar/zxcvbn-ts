@@ -2,6 +2,26 @@
 
 All notable changes to **zxcvbn-ts** are documented here.
 
+## [2.0.1] — 2025
+
+### Bug Fixes
+
+- Fix TypeScript cast errors in `time_estimates.ts` — `CrackTimesDisplay` and `CrackTimesCost` now cast through `unknown` before `Record<string, ...>` to satisfy strict type checking.
+
+### Features
+
+- `customHashesPerSecond` option(#199) — pass a custom hash rate to `zxcvbn()` via `ZxcvbnOptions` to model key-stretched algorithms like pbkdf2, Argon2 or bcrypt with a custom cost factor. Adds an optional `custom_hash_rate` field to `crack_times_seconds`, `crack_time_display` and `crack_time_cost`.
+
+```ts
+// pbkdf2 with 100k iterations reduces effective rate to ~1M/s
+const result = zxcvbn("password", [], {
+    customHashesPerSecond: 1e6,
+})
+
+result.crack_times_display.custom_hash_rate // "3 hours"
+displayCost(result.crack_times_cost.custom_hash_rate) // "$0.04"
+```
+
 ## [2.0.0] — 2025
 
 ### ⚠️ Breaking changes
@@ -15,7 +35,9 @@ All notable changes to **zxcvbn-ts** are documented here.
 - **`minLength` option (#300)** — pass `{ minLength: 8 }` as a third argument to `zxcvbn()` to enforce a minimum password length. Passwords shorter than the minimum are forced to score 0 with a clear suggestion regardless of entropy.
 
     ```ts
-    zxcvbn("xkJ#9!", [], { minLength: 8 })
+    zxcvbn("xkJ#9!", [], {
+        minLength: 8,
+    })
     // score: 0, suggestions: ["Password must be at least 8 characters", ...]
     ```
 
@@ -82,7 +104,11 @@ All notable changes to **zxcvbn-ts** are documented here.
 
     ```ts
     import { zxcvbnAI } from "zxcvbn-ts/ai"
-    const r = await zxcvbnAI("password123", { apiKey: "sk-ant-..." })
+
+    const r = await zxcvbnAI("password123", {
+        apiKey: "sk-ant-...",
+    })
+
     console.log(r.feedback.explanation)
     ```
 

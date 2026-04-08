@@ -1,4 +1,4 @@
-/** Keyboard graph: maps each character to its adjacent key-groups. **/
+// Keyboard graph: maps each character to its adjacent key-groups
 export type AdjacencyGraph = Readonly<Record<string, ReadonlyArray<string | null>>>
 
 export interface AdjacencyGraphs {
@@ -8,10 +8,10 @@ export interface AdjacencyGraphs {
     readonly mac_keypad: AdjacencyGraph
 }
 
-/** A ranked dictionary maps word → rank (1-based). **/
+// A ranked dictionary maps word → rank (1-based)
 export type RankedDictionary = Readonly<Record<string, number>>
 
-/** All named ranked dictionaries. **/
+// All named ranked dictionaries
 export type RankedDictionaries = Record<string, RankedDictionary>
 
 // ----------------------------------------------------------------
@@ -19,7 +19,7 @@ export type RankedDictionaries = Record<string, RankedDictionary>
 // ----------------------------------------------------------------
 export type PatternName = "bruteforce" | "dictionary" | "spatial" | "repeat" | "sequence" | "regex" | "date" | "phone"
 
-/** Base fields shared by every match. **/
+// Base fields shared by every match
 interface BaseMatch {
     readonly pattern: PatternName
     i: number
@@ -119,8 +119,15 @@ export interface ScoringResult {
 export interface CrackTimesSeconds {
     readonly online_throttling_100_per_hour: number
     readonly online_no_throttling_10_per_second: number
+    // Updated from 1e4 to 1e5 to reflect modern GPU bcrypt speeds (2025)
     readonly offline_slow_hashing_1e5_per_second: number
+    // Updated from 1e10 to 1e11 to reflect modern GPU MD5 speeds (2025)
     readonly offline_fast_hashing_1e11_per_second: number
+    /**
+     * Crack time using a custom hash rate (e.g. pbkdf2-stretched, Argon2).
+     * Only present when `customHashesPerSecond` is passed to `zxcvbn()`.
+     **/
+    readonly custom_hash_rate?: number
 }
 
 export interface CrackTimesDisplay {
@@ -128,6 +135,8 @@ export interface CrackTimesDisplay {
     readonly online_no_throttling_10_per_second: string
     readonly offline_slow_hashing_1e5_per_second: string
     readonly offline_fast_hashing_1e11_per_second: string
+    // Human-readable crack time at the custom hash rate
+    readonly custom_hash_rate?: string
 }
 
 /**
@@ -144,6 +153,8 @@ export interface CrackTimesCost {
     readonly offline_slow_hashing_1e5_per_second: number
     // ~$3.00/hr offline attack with fast hashing (MD5, SHA1) on GPU
     readonly offline_fast_hashing_1e11_per_second: number
+    // Cost at the custom hash rate. Only present when customHashesPerSecond is set
+    readonly custom_hash_rate?: number
 }
 
 export interface AttackTimes {
@@ -181,11 +192,24 @@ export interface ZxcvbnOptions {
      * score: 0, feedback includes "Password must be at least 8 characters"
      **/
     minLength?: number
+    /**
+     * Custom hash rate in hashes per second (#199 — pbkdf2 stretching).
+     * When provided, an additional `custom_hash_rate` field is added to
+     * `crack_times_seconds`, `crack_times_display`, and `crack_times_cost`
+     * reflecting crack time under your specific hashing setup.
+     *
+     * @example
+     * // pbkdf2 with 100k iterations reduces effective rate ~100k×
+     * zxcvbn("password", [], { customHashesPerSecond: 1e6 })
+     * // crack_times_seconds.custom_hash_rate — seconds to crack at 1M/s
+     * // crack_times_display.custom_hash_rate — "3 hours"
+     **/
+    customHashesPerSecond?: number
 }
 
 export interface ZxcvbnResult extends ScoringResult, AttackTimes {
     readonly feedback: Feedback
-    /** Milliseconds taken to compute. **/
+    // Milliseconds taken to compute
     readonly calc_time: number
 }
 

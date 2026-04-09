@@ -22,6 +22,16 @@ result.crack_times_display.custom_hash_rate // "3 hours"
 displayCost(result.crack_times_cost.custom_hash_rate) // "$0.04"
 ```
 
+### CI
+
+- Added GitHub Actions workflow (`.github/workflows/ci.yml`) — runs typecheck, build, `bun test`, and `node tests/run.js` on every push and PR against `main`, across Node 18/20/22.
+- Publish job triggers automatically when commit message starts with `chore(release)` and all tests pass.
+
+### Documentation
+
+- Added server-side only warning to `zxcvbnAI()` section — password data must never be sent to AI providers from the browser.
+- Added safe usage pattern: run `zxcvbn()` client-side for instant feedback, call `zxcvbnAI()` server-side only for weak passwords.
+
 ## [2.0.0] — 2025
 
 ### ⚠️ Breaking changes

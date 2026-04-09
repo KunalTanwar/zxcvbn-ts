@@ -105,6 +105,21 @@ describe("zxcvbn()", () => {
         }
     })
 
+    test("customHashesPerSecond option adds custom_hash_rate to results (#199)", () => {
+        const r = zxcvbn("password", [], { customHashesPerSecond: 1e4 })
+
+        expect(typeof r.crack_times_seconds.custom_hash_rate).toBe("number")
+        expect(typeof r.crack_times_display.custom_hash_rate).toBe("string")
+        expect(typeof r.crack_times_cost.custom_hash_rate).toBe("number")
+    })
+
+    test("customHashesPerSecond — higher rate means faster crack time", () => {
+        const fast = zxcvbn("correcthorsebatterystaple", [], { customHashesPerSecond: 1e12 })
+        const slow = zxcvbn("correcthorsebatterystaple", [], { customHashesPerSecond: 1e3 })
+
+        expect(fast.crack_times_seconds.custom_hash_rate!).toBeLessThan(slow.crack_times_seconds.custom_hash_rate!)
+    })
+
     test("crack_times_cost has all four scenarios", () => {
         const { crack_times_cost: ctc } = zxcvbn("password")
 
@@ -158,6 +173,60 @@ describe("zxcvbn() — minLength option", () => {
         const r = zxcvbn("password")
 
         expect(r.feedback.suggestions.some((s) => s.includes("characters"))).toBe(false)
+    })
+})
+
+// ---------------------------------------------------------------------------
+// customHashesPerSecond option (#199)
+// ---------------------------------------------------------------------------
+
+describe("zxcvbn() — customHashesPerSecond option", () => {
+    test("adds custom_hash_rate to crack_times_seconds", () => {
+        const r = zxcvbn("password", [], { customHashesPerSecond: 1e5 })
+
+        expect(typeof r.crack_times_seconds.custom_hash_rate).toBe("number")
+    })
+
+    test("custom_hash_rate seconds = guesses / customHashesPerSecond", () => {
+        const r = zxcvbn("password", [], { customHashesPerSecond: 1e5 })
+
+        // password guesses ~1, so custom_hash_rate ~ 1/1e5
+        expect(r.crack_times_seconds.custom_hash_rate).toBeGreaterThan(0)
+    })
+
+    test("adds custom_hash_rate to crack_times_display", () => {
+        const r = zxcvbn("password", [], { customHashesPerSecond: 1e5 })
+
+        expect(typeof r.crack_times_display.custom_hash_rate).toBe("string")
+        expect(r.crack_times_display.custom_hash_rate!.length).toBeGreaterThan(0)
+    })
+
+    test("adds custom_hash_rate to crack_times_cost", () => {
+        const r = zxcvbn("password", [], { customHashesPerSecond: 1e5 })
+
+        expect(typeof r.crack_times_cost.custom_hash_rate).toBe("number")
+    })
+
+    test("without option — no custom_hash_rate field", () => {
+        const r = zxcvbn("password")
+
+        expect(r.crack_times_seconds.custom_hash_rate).toBeUndefined()
+        expect(r.crack_times_display.custom_hash_rate).toBeUndefined()
+        expect(r.crack_times_cost.custom_hash_rate).toBeUndefined()
+    })
+
+    test("strong password takes longer at custom hash rate than weak", () => {
+        const weak = zxcvbn("password", [], { customHashesPerSecond: 1e6 })
+        const strong = zxcvbn("correcthorsebatterystaple", [], { customHashesPerSecond: 1e6 })
+
+        expect(strong.crack_times_seconds.custom_hash_rate!).toBeGreaterThan(weak.crack_times_seconds.custom_hash_rate!)
+    })
+
+    test("estimateAttackTimes accepts customHashesPerSecond directly", () => {
+        const result = estimateAttackTimes(1e8, 1e5)
+
+        expect(result.crack_times_seconds.custom_hash_rate).toBe(1000) // 1e8 / 1e5
+        expect(typeof result.crack_times_display.custom_hash_rate).toBe("string")
     })
 })
 
@@ -445,10 +514,25 @@ describe("estimateAttackTimes()", () => {
     test("returns correct structure with updated keys", () => {
         const r = estimateAttackTimes(1e6)
 
-        expect(r.crack_times_seconds.offline_slow_hashing_1e5_per_second).toBeTruthy()
-        expect(r.crack_times_seconds.offline_fast_hashing_1e11_per_second).toBeTruthy()
-        expect(r.crack_times_cost.offline_fast_hashing_1e11_per_second).toBeDefined()
+        expect(typeof r.crack_times_seconds.offline_slow_hashing_1e5_per_second).toBe("number")
+        expect(typeof r.crack_times_seconds.offline_fast_hashing_1e11_per_second).toBe("number")
+        expect(typeof r.crack_times_cost.offline_fast_hashing_1e11_per_second).toBe("number")
         expect(typeof r.score).toBe("number")
+    })
+
+    test("customHashesPerSecond adds custom_hash_rate field (#199)", () => {
+        const r = estimateAttackTimes(1e6, 1e5)
+
+        expect(typeof r.crack_times_seconds.custom_hash_rate).toBe("number")
+        expect(r.crack_times_seconds.custom_hash_rate).toBe(10) // 1e6 / 1e5 = 10s
+        expect(typeof r.crack_times_display.custom_hash_rate).toBe("string")
+        expect(typeof r.crack_times_cost.custom_hash_rate).toBe("number")
+    })
+
+    test("without customHashesPerSecond custom_hash_rate is undefined", () => {
+        const r = estimateAttackTimes(1e6)
+
+        expect(r.crack_times_seconds.custom_hash_rate).toBeUndefined()
     })
 })
 

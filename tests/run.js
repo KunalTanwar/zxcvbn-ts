@@ -265,10 +265,25 @@ suite("time_estimates — estimateAttackTimes / displayTime", () => {
     test("estimateAttackTimes returns correct structure with 2025 keys", () => {
         const result = estimateAttackTimes(1e6)
 
-        assert.ok(result.crack_times_seconds.offline_slow_hashing_1e5_per_second !== undefined)
-        assert.ok(result.crack_times_seconds.offline_slow_hashing_1e11_per_second !== undefined)
-        assert.ok(result.crack_times_cost)
+        assert.equal(typeof result.crack_times_seconds.offline_slow_hashing_1e5_per_second, "number")
+        assert.equal(typeof result.crack_times_seconds.offline_fast_hashing_1e11_per_second, "number")
+        assert.ok(result.crack_times_cost !== undefined)
+        assert.equal(typeof result.crack_times_cost.offline_fast_hashing_1e11_per_second, "number")
+
         assert.equal(typeof result.score, "number")
+    })
+
+    test("estimateAttackTimes supports customHashesPerSecond (#199)", () => {
+        const result = estimateAttackTimes(1e6, 1e5)
+        assert.equal(typeof result.crack_times_seconds.custom_hash_rate, "number")
+        assert.equal(result.crack_times_seconds.custom_hash_rate, 10) // 1e6 / 1e5 = 10s
+        assert.equal(typeof result.crack_times_display.custom_hash_rate, "string")
+        assert.equal(typeof result.crack_times_cost.custom_hash_rate, "number")
+    })
+
+    test("estimateAttackTimes without customHashesPerSecond has no custom_hash_rate", () => {
+        const result = estimateAttackTimes(1e6)
+        assert.equal(result.crack_times_seconds.custom_hash_rate, undefined)
     })
 
     test("displayCost formats correctly", () => {

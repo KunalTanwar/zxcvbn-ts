@@ -1,0 +1,71 @@
+name: CI
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
+
+jobs:
+    test:
+        name: Test — Node ${{ matrix.node }}
+        runs-on: ubuntu-latest
+
+        strategy:
+            matrix:
+                node: ["18", "20", "22"]
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup Bun
+              uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: latest
+
+            - name: Setup Node.js ${{ matrix.node }}
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ matrix.node }}
+
+            - name: Install dependencies
+              run: bun install
+
+            - name: Typecheck
+              run: bun run typecheck
+
+            - name: Build
+              run: bun run build
+
+            - name: Test (bun)
+              run: bun test
+
+            - name: Test (node)
+              run: node tests/run.js
+
+    # publish:
+    #     name: Publish to npm
+    #     needs: test
+    #     runs-on: ubuntu-latest
+    #     if: github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, 'chore(release)')
+
+    #     steps:
+    #         - name: Checkout
+    #           uses: actions/checkout@v4
+
+    #         - name: Setup Bun
+    #           uses: oven-sh/setup-bun@v2
+    #           with:
+    #               bun-version: latest
+
+    #         - name: Install dependencies
+    #           run: bun install
+
+    #         - name: Build
+    #           run: bun run build
+
+    #         - name: Publish
+    #           run: bun publish
+    #           env:
+    #               NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

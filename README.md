@@ -5,6 +5,7 @@
 [![license](https://img.shields.io/npm/l/zxcvbn-ts)](./LICENSE)
 [![npm downloads](https://img.shields.io/npm/dm/zxcvbn-ts)](https://www.npmjs.com/package/zxcvbn-ts)
 [![changelog](https://img.shields.io/badge/changelog-2.0.1-blue)](CHANGELOG.md)
+[![CI](https://github.com/KunalTanwar/zxcvbn-ts/actions/workflows/ci.yml/badge.svg)](https://github.com/KunalTanwar/zxcvbn-ts/actions/workflows/ci.yml)
 
 A complete TypeScript rewrite of Dropbox's [zxcvbn](https://github.com/dropbox/zxcvbn) password strength estimator — with strict types, dual CJS/ESM output, fully populated dictionaries, optional AI feedback, and 20+ fixes over the original.
 
@@ -81,11 +82,16 @@ const result = zxcvbn("alice1990", ["alice", "alice@example.com"])
 
 ```ts
 // Enforce 8-character minimum
-zxcvbn("abc", [], { minLength: 8 })
+zxcvbn("abc", [], {
+    minLength: 8,
+})
 // score: 0, suggestions: ["Password must be at least 8 characters", ...]
 
 // Model pbkdf2 with 100k iterations (~1M hashes/s effective rate)
-const result = zxcvbn("password", [], { customHashesPerSecond: 1e6 })
+const result = zxcvbn("password", [], {
+    customHashesPerSecond: 1e6,
+})
+
 console.log(result.crack_times_display.custom_hash_rate)
 // "3 hours"
 ```
@@ -141,7 +147,9 @@ displayCost(r.crack_times_cost.offline_fast_hashing_1e11_per_second) // "$2.28"
 r.crack_times_display.offline_slow_hashing_1e5_per_second // "85 years"
 
 // With key stretching
-const r2 = zxcvbn("password", [], { customHashesPerSecond: 1e6 })
+const r2 = zxcvbn("password", [], {
+    customHashesPerSecond: 1e6,
+})
 r2.crack_times_display.custom_hash_rate // "3 hours"
 r2.crack_times_seconds.custom_hash_rate // 10800
 ```
@@ -199,17 +207,23 @@ import { zxcvbnAI, anthropic, openai, gemini } from "zxcvbn-ts/ai"
 
 // Anthropic (default when no provider given)
 const result = await zxcvbnAI("password123", {
-    provider: anthropic({ apiKey: "sk-ant-..." }),
+    provider: anthropic({
+        apiKey: "sk-ant-...",
+    }),
 })
 
 // OpenAI
 const result = await zxcvbnAI("password123", {
-    provider: openai({ apiKey: "sk-..." }),
+    provider: openai({
+        apiKey: "sk-...",
+    }),
 })
 
 // Gemini
 const result = await zxcvbnAI("password123", {
-    provider: gemini({ apiKey: "..." }),
+    provider: gemini({
+        apiKey: "...",
+    }),
 })
 
 console.log(result.feedback.explanation)
@@ -226,12 +240,18 @@ import type { AIProvider } from "zxcvbn-ts/ai"
 
 const myProvider: AIProvider = {
     complete: async (systemPrompt, userPrompt) => {
-        const res = await myLLM.chat({ system: systemPrompt, user: userPrompt })
+        const res = await myLLM.chat({
+            system: systemPrompt,
+            user: userPrompt,
+        })
+
         return res.text // must return a JSON string
     },
 }
 
-const result = await zxcvbnAI("password123", { provider: myProvider })
+const result = await zxcvbnAI("password123", {
+    provider: myProvider,
+})
 ```
 
 ### Provider options
@@ -241,6 +261,74 @@ const result = await zxcvbnAI("password123", { provider: myProvider })
 | `anthropic()` | `claude-haiku-4-5-20251001` | `ANTHROPIC_API_KEY` |
 | `openai()`    | `gpt-4o-mini`               | `OPENAI_API_KEY`    |
 | `gemini()`    | `gemini-1.5-flash`          | `GEMINI_API_KEY`    |
+
+### ⚠️ Security & privacy
+
+`zxcvbnAI()` sends the **structured analysis** of the password to the AI provider — not the raw password itself. The prompt contains the pattern breakdown, score, and crack time estimate. Even so:
+
+- **Always call `zxcvbnAI()` server-side** — never expose your API key or send password analysis from the browser
+- The raw password is never included in the prompt, but the match sequence may reveal partial information
+- Use a backend endpoint to proxy calls if you need AI feedback in a client-side app
+
+```ts
+// ✅ Safe — server-side only
+app.post("/check-password", async (req, res) => {
+    const result = await zxcvbnAI(req.body.password, {
+        provider: anthropic({
+            apiKey: process.env.ANTHROPIC_API_KEY,
+        }),
+    })
+
+    res.json({
+        score: result.score,
+        feedback: result.feedback,
+    })
+})
+
+// ❌ Never do this — exposes API key in browser bundle
+const result = await zxcvbnAI(password, {
+    provider: anthropic({
+        apiKey: "sk-ant-...",
+    }),
+})
+```
+
+### ⚠️ Security & privacy warning
+
+**Use `zxcvbnAI()` server-side only.** Password data should never be sent to a third-party API from the browser — it exposes sensitive user input to your API key, the AI provider's servers, and any network intermediaries.
+
+```ts
+// ✅ Correct — server-side only (Node.js, Bun, Edge Functions)
+const result = await zxcvbnAI(password, {
+    provider: anthropic(),
+})
+
+// ❌ Never do this in the browser
+const result = await zxcvbnAI(password, {
+    provider: openai({
+        apiKey: "sk-...",
+    }),
+})
+```
+
+A safe pattern: run `zxcvbn()` client-side for instant feedback, then call `zxcvbnAI()` server-side only if the score is below your threshold:
+
+```ts
+// Client — instant, zero network
+const quick = zxcvbn(password)
+
+if (quick.score >= 3) return { valid: true }
+
+// Server — only for weak passwords
+const detailed = await zxcvbnAI(password, {
+    provider: anthropic(),
+})
+
+return {
+    valid: false,
+    message: detailed.feedback.explanation,
+}
+```
 
 ### Cost
 

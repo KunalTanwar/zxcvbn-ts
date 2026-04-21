@@ -2,6 +2,20 @@
 
 All notable changes to **zxcvbn-ts** are documented here.
 
+# [2.0.2] — April 2026
+
+### Housekeeping
+
+- **`tsconfig.base.json`** — bump `target` and `lib` from `ES2017` to `ES2020`; replace `rootDirs` array with `rootDir: "src"` (fixes VS Code rootDir warning).
+- **`tsconfig.json`** — switch `moduleResolution` from `node` to `bundler`; set `noEmit: true`; scope to `src` only. Fixes the `node10` deprecation warning in VS Code.
+- **`tsconfig.bun.json`** — switch to `moduleResolution: bundler`; set `types: ["bun-types"]`; include `src` and `tests`. Used by the `typecheck` script.
+- **`tsconfig.cjs.json`** — add `ignoreDeprecations: "5.0"` to silence the `node10` warning. CJS build must keep `moduleResolution: node10`.
+- **`tsconfig.types.json`** — switch `moduleResolution` from `node` to `bundler`.
+- **`tests/ai.test.ts`** — add `/// <reference types="bun-types" />`; replace all `global.fetch` with `globalThis.fetch`; type `complete()` mock params as `string`.
+- **`tests/zxcvbn.test.ts`** — add `/// <reference types="bun-types" />`.
+- **`package.json`** — replace `@types/bun` with `bun-types`; add `author`, `repository`, `homepage`, `bugs` fields; improve `description` and expand `keywords`; update `typecheck` script to use `tsconfig.bun.json`.
+- **`README.md`** — add server-side only warning to `zxcvbnAI()` section; add CI badge; update changelog badge to `2.0.2`.
+
 ## [2.0.1] — 2025
 
 ### Bug Fixes

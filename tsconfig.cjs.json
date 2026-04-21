@@ -2,10 +2,10 @@
     "extends": "./tsconfig.base.json",
     "compilerOptions": {
         "module": "CommonJS",
-        "moduleResolution": "node",
+        "moduleResolution": "node10",
+        "ignoreDeprecations": "5.0",
         "outDir": "dist/cjs",
         "sourceMap": false,
-        "declaration": false,
-        "resolveJsonModule": true
+        "declaration": false
     }
 }

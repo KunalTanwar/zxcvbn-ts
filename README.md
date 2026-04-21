@@ -1,11 +1,21 @@
 # zxcvbn-ts
 
-[![npm version](https://img.shields.io/npm/v/zxcvbn-ts)](https://www.npmjs.com/package/zxcvbn-ts)
-[![bundle size](https://img.shields.io/bundlephobia/minzip/zxcvbn-ts)](https://bundlephobia.com/package/zxcvbn-ts)
-[![license](https://img.shields.io/npm/l/zxcvbn-ts)](./LICENSE)
-[![npm downloads](https://img.shields.io/npm/dm/zxcvbn-ts)](https://www.npmjs.com/package/zxcvbn-ts)
-[![changelog](https://img.shields.io/badge/changelog-2.0.1-blue)](CHANGELOG.md)
-[![CI](https://github.com/KunalTanwar/zxcvbn-ts/actions/workflows/ci.yml/badge.svg)](https://github.com/KunalTanwar/zxcvbn-ts/actions/workflows/ci.yml)
+<div align="center">
+
+![](https://badgen.net/github/checks/KunalTanwar/zxcvbn-ts/)
+![](https://badgen.net/github/last-commit/KunalTanwar/zxcvbn-ts/)
+![](https://badgen.net/github/license/KunalTanwar/zxcvbn-ts/)
+![](https://badgen.net/npm/v/zxcvbn-ts/)
+![](https://badgen.net/npm/dt/zxcvbn-ts/)
+![](https://badgen.net/npm/types/zxcvbn-ts/)
+![](https://badgen.net/bundlejs/minzip/zxcvbn-ts/)
+![](https://badgen.net/packagephobia/install/zxcvbn-ts/)
+![](https://badgen.net/packagephobia/publish/zxcvbn-ts/)
+![](https://badgen.net/github/contributors/KunalTanwar/zxcvbn-ts/)
+![](https://badgen.net/github/open-issues/KunalTanwar/zxcvbn-ts/)
+![](https://badgen.net/badge/changelog/v2.0.2/)
+
+</div>
 
 A complete TypeScript rewrite of Dropbox's [zxcvbn](https://github.com/dropbox/zxcvbn) password strength estimator — with strict types, dual CJS/ESM output, fully populated dictionaries, optional AI feedback, and 20+ fixes over the original.
 

@@ -16,7 +16,7 @@ const MOCK_FEEDBACK = JSON.stringify({
 })
 
 function mockFetch(responseBody: object, status = 200) {
-    global.fetch = mock(
+    globalThis.fetch = mock(
         async () =>
             new Response(JSON.stringify(responseBody), {
                 status,
@@ -25,9 +25,9 @@ function mockFetch(responseBody: object, status = 200) {
     ) as unknown as typeof fetch
 }
 
-const originalFetch = global.fetch
+const originalFetch = globalThis.fetch
 afterEach(() => {
-    global.fetch = originalFetch
+    globalThis.fetch = originalFetch
 })
 
 // ---------------------------------------------------------------------------
@@ -64,7 +64,7 @@ describe("anthropic() provider", () => {
     test("sends request to Anthropic endpoint", async () => {
         let capturedUrl = ""
 
-        global.fetch = mock(async (url: string) => {
+        globalThis.fetch = mock(async (url: string) => {
             capturedUrl = url
 
             return new Response(JSON.stringify(anthropicResponse(MOCK_FEEDBACK)), { status: 200 })
@@ -80,7 +80,7 @@ describe("anthropic() provider", () => {
     test("sends x-api-key header", async () => {
         let capturedHeaders: Record<string, string> = {}
 
-        global.fetch = mock(async (_url: string, init?: RequestInit) => {
+        globalThis.fetch = mock(async (_url: string, init?: RequestInit) => {
             capturedHeaders = init?.headers as Record<string, string>
 
             return new Response(JSON.stringify(anthropicResponse(MOCK_FEEDBACK)), { status: 200 })
@@ -118,7 +118,7 @@ describe("anthropic() provider", () => {
     test("respects custom model option", async () => {
         let body: Record<string, unknown> = {}
 
-        global.fetch = mock(async (_url: string, init?: RequestInit) => {
+        globalThis.fetch = mock(async (_url: string, init?: RequestInit) => {
             body = JSON.parse(init?.body as string)
 
             return new Response(JSON.stringify(anthropicResponse(MOCK_FEEDBACK)), { status: 200 })
@@ -151,7 +151,7 @@ describe("openai() provider", () => {
     test("sends request to OpenAI endpoint", async () => {
         let capturedUrl = ""
 
-        global.fetch = mock(async (url: string) => {
+        globalThis.fetch = mock(async (url: string) => {
             capturedUrl = url
 
             return new Response(JSON.stringify(openaiResponse(MOCK_FEEDBACK)), {
@@ -167,7 +167,7 @@ describe("openai() provider", () => {
     test("sends Bearer Authorization header", async () => {
         let capturedHeaders: Record<string, string> = {}
 
-        global.fetch = mock(async (_url: string, init?: RequestInit) => {
+        globalThis.fetch = mock(async (_url: string, init?: RequestInit) => {
             capturedHeaders = init?.headers as Record<string, string>
 
             return new Response(JSON.stringify(openaiResponse(MOCK_FEEDBACK)), {
@@ -201,7 +201,7 @@ describe("openai() provider", () => {
     test("respects custom model option", async () => {
         let body: Record<string, unknown> = {}
 
-        global.fetch = mock(async (_url: string, init?: RequestInit) => {
+        globalThis.fetch = mock(async (_url: string, init?: RequestInit) => {
             body = JSON.parse(init?.body as string)
 
             return new Response(JSON.stringify(openaiResponse(MOCK_FEEDBACK)), {
@@ -233,7 +233,7 @@ describe("gemini() provider", () => {
     test("sends request to Gemini endpoint", async () => {
         let capturedUrl = ""
 
-        global.fetch = mock(async (url: string) => {
+        globalThis.fetch = mock(async (url: string) => {
             capturedUrl = url
 
             return new Response(JSON.stringify(geminiResponse(MOCK_FEEDBACK)), {
@@ -266,7 +266,7 @@ describe("gemini() provider", () => {
     test("respects custom model option", async () => {
         let capturedUrl = ""
 
-        global.fetch = mock(async (url: string) => {
+        globalThis.fetch = mock(async (url: string) => {
             capturedUrl = url
 
             return new Response(JSON.stringify(geminiResponse(MOCK_FEEDBACK)), {

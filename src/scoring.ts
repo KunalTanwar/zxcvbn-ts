@@ -11,6 +11,9 @@ import type {
     BruteforceMatch,
     AdjacencyGraph,
     PhoneMatch,
+    DoubledSequenceMatch,
+    InterleavedMatch,
+    EmailMatch,
 } from "./types"
 
 // ----------------------------------------------------------------
@@ -291,6 +294,19 @@ export function estimateGuesses(match: Match, password: string): number {
         case "phone":
             guesses = phoneGuesses(match)
             break
+
+        case "interleaved":
+            guesses = interleavedGuesses(match)
+            break
+
+        case "doubled_sequence":
+            guesses = doubledSequenceGuesses(match)
+            break
+
+        case "email":
+            guesses = emailGuesses(match)
+            break
+
         default: {
             // Exhaustive type check
             const _exhaustive: never = match
@@ -494,6 +510,71 @@ function phoneGuesses(match: PhoneMatch): number {
         default:
             return 10_000_000
     }
+}
+
+function interleavedGuesses(match: InterleavedMatch): number {
+    // Two independent sequences interleaved — multiply their individual
+    // sequence spaces together since an attacker must guess both.
+    const spaceA =
+        /^[a-z]+$/.test(match.sequence_a) || /^[A-Z]+$/.test(match.sequence_a)
+            ? 26
+            : /^\d+$/.test(match.sequence_a)
+              ? 10
+              : 26
+    const spaceB =
+        /^[a-z]+$/.test(match.sequence_b) || /^[A-Z]+$/.test(match.sequence_b)
+            ? 26
+            : /^\d+$/.test(match.sequence_b)
+              ? 10
+              : 26
+    // Ascending or descending each halves the search space
+    const dirMultiplier = 2
+
+    return spaceA * spaceB * match.sequence_a.length * dirMultiplier
+}
+
+function doubledSequenceGuesses(match: DoubledSequenceMatch): number {
+    // Base sequence space × repeat count × direction
+    const space =
+        /^[a-z]+$/.test(match.base_sequence) || /^[A-Z]+$/.test(match.base_sequence)
+            ? 26
+            : /^\d+$/.test(match.base_sequence)
+              ? 10
+              : 26
+    const dirMultiplier = 2
+
+    // Repeat count (2 or 3) multiplies the guesses since attacker must know it
+    return space * match.base_sequence.length * match.repeat_count * dirMultiplier
+}
+
+function emailGuesses(match: EmailMatch): number {
+    // Email addresses as passwords are weak because:
+    // - The domain is often zero entropy (gmail.com, hotmail.com etc.)
+    // - The local part frequently matches the user's name/username
+    //
+    // Guess model:
+    //   local part:  10^(local.length * 0.5) — partial entropy since
+    //                local parts are often real names or words
+    //   domain:      2 for common providers, local.length^2 otherwise
+    //   structure:   fixed multiplier — @ + TLD is always present
+    const COMMON_DOMAINS = new Set([
+        "gmail.com",
+        "yahoo.com",
+        "hotmail.com",
+        "outlook.com",
+        "icloud.com",
+        "aol.com",
+        "protonmail.com",
+        "live.com",
+        "msn.com",
+        "me.com",
+        "mac.com",
+    ])
+
+    const domainFactor = COMMON_DOMAINS.has(match.domain.toLowerCase()) ? 2 : 10
+    const localEntropy = Math.pow(10, match.local.length * 0.3)
+
+    return Math.round(localEntropy * domainFactor)
 }
 
 // Export constants needed by other modules

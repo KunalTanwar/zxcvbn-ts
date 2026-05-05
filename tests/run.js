@@ -16,6 +16,10 @@ const {
     regexMatch,
     dateMatch,
     phoneMatch,
+    columnWalkMatch,
+    interleavedSequenceMatch,
+    doubledSequenceMatch,
+    emailMatch,
     mostGuessableMatchSequence,
     estimateAttackTimes,
     getFeedback,
@@ -55,6 +59,7 @@ function suite(name, fn) {
 suite("zxcvbn() — top-level API", () => {
     test("returns a result object with all required fields", () => {
         const r = zxcvbn("password")
+
         assert.equal(typeof r.score, "number")
         assert.equal(typeof r.guesses, "number")
         assert.equal(typeof r.guesses_log10, "number")
@@ -69,6 +74,7 @@ suite("zxcvbn() — top-level API", () => {
     test("score is in range 0–4", () => {
         for (const pw of ["a", "password", "correcthorsebatterystaple", "xkJ#9!vQ2$mP", ""]) {
             const { score } = zxcvbn(pw)
+
             assert.ok(score >= 0 && score <= 4, `score=${score} out of range for "${pw}"`)
         }
     })
@@ -177,7 +183,11 @@ suite("scoring — mostGuessableMatchSequence", () => {
 suite("matching — individual matchers", () => {
     test("dictionaryMatch finds 'password' in ranked dict", () => {
         const matches = dictionaryMatch("password", {
-            test_dict: { password: 1, hello: 2, world: 3 },
+            test_dict: {
+                password: 1,
+                hello: 2,
+                world: 3,
+            },
         })
 
         assert.ok(matches.some((m) => m.matched_word === "password"))
@@ -185,7 +195,9 @@ suite("matching — individual matchers", () => {
 
     test("reverseDictionaryMatch finds reversed token", () => {
         const matches = reverseDictionaryMatch("drowssap", {
-            test_dict: { password: 1 },
+            test_dict: {
+                password: 1,
+            },
         })
 
         assert.ok(matches.some((m) => m.reversed === true))
@@ -267,14 +279,16 @@ suite("time_estimates — estimateAttackTimes / displayTime", () => {
 
         assert.equal(typeof result.crack_times_seconds.offline_slow_hashing_1e5_per_second, "number")
         assert.equal(typeof result.crack_times_seconds.offline_fast_hashing_1e11_per_second, "number")
-        assert.ok(result.crack_times_cost !== undefined)
-        assert.equal(typeof result.crack_times_cost.offline_fast_hashing_1e11_per_second, "number")
 
+        assert.ok(result.crack_times_cost !== undefined)
+
+        assert.equal(typeof result.crack_times_cost.offline_fast_hashing_1e11_per_second, "number")
         assert.equal(typeof result.score, "number")
     })
 
     test("estimateAttackTimes supports customHashesPerSecond (#199)", () => {
         const result = estimateAttackTimes(1e6, 1e5)
+
         assert.equal(typeof result.crack_times_seconds.custom_hash_rate, "number")
         assert.equal(result.crack_times_seconds.custom_hash_rate, 10) // 1e6 / 1e5 = 10s
         assert.equal(typeof result.crack_times_display.custom_hash_rate, "string")
@@ -283,6 +297,7 @@ suite("time_estimates — estimateAttackTimes / displayTime", () => {
 
     test("estimateAttackTimes without customHashesPerSecond has no custom_hash_rate", () => {
         const result = estimateAttackTimes(1e6)
+
         assert.equal(result.crack_times_seconds.custom_hash_rate, undefined)
     })
 
@@ -301,6 +316,7 @@ suite("feedback — getFeedback", () => {
         const fb = getFeedback(1, sequence)
 
         assert.equal(typeof fb.warning, "string")
+
         assert.ok(Array.isArray(fb.suggestions))
     })
 
@@ -317,6 +333,7 @@ suite("feedback — getFeedback", () => {
     test("gives warning for common dictionary word", () => {
         const { sequence, guesses } = mostGuessableMatchSequence("password", omnimatch("password"))
         const { score } = estimateAttackTimes(guesses)
+
         const fb = getFeedback(score, sequence)
 
         assert.ok(fb.warning.length > 0 || fb.suggestions.length > 0, "expected some feedback for 'password'")
@@ -428,6 +445,118 @@ suite("updated threat model (#272)", () => {
 
         assert.ok(cts.offline_slow_hashing_1e5_per_second !== undefined)
         assert.ok(cts.offline_fast_hashing_1e11_per_second !== undefined)
+    })
+})
+
+// ---------------------------------------------------------------------------
+
+suite("emailMatch()", () => {
+    test("detects alice@example.com", () => {
+        const m = emailMatch("alice@example.com")
+
+        assert.ok(m.length > 0)
+        assert.equal(m[0].pattern, "email")
+        assert.equal(m[0].local, "alice")
+        assert.equal(m[0].domain, "example.com")
+        assert.equal(m[0].tld, "com")
+    })
+
+    test("detects gmail address", () => {
+        assert.ok(emailMatch("user@gmail.com").length > 0)
+    })
+
+    test("does not match non-email", () => {
+        assert.equal(emailMatch("password123").length, 0)
+    })
+
+    test("email scores weak", () => {
+        assert.ok(zxcvbn("alice@gmail.com").score <= 2)
+    })
+})
+
+// ---------------------------------------------------------------------------
+
+suite("columnWalkMatch()", () => {
+    test("detects 1qaz column walk", () => {
+        const m = columnWalkMatch("1qaz")
+
+        assert.ok(m.length > 0, "expected 1qaz to be detected as column walk")
+
+        assert.equal(m[0].graph, "qwerty_column")
+    })
+
+    test("detects 1qaz and 2wsx as separate column walks in 1qaz2wsx", () => {
+        const m = columnWalkMatch("1qaz2wsx")
+
+        assert.ok(
+            m.some((x) => x.token === "1qaz"),
+            "expected 1qaz match",
+        )
+        assert.ok(
+            m.some((x) => x.token === "2wsx"),
+            "expected 2wsx match",
+        )
+    })
+
+    test("does not match random string", () => {
+        assert.equal(columnWalkMatch("xkJ9vQ").length, 0)
+    })
+
+    test("column walk scores weak", () => {
+        assert.ok(zxcvbn("1qaz2wsx").score <= 2)
+    })
+})
+
+// ---------------------------------------------------------------------------
+
+suite("interleavedSequenceMatch()", () => {
+    test("detects a1b2c3", () => {
+        const m = interleavedSequenceMatch("a1b2c3")
+
+        assert.ok(m.length > 0, "expected a1b2c3 to be detected as interleaved")
+        assert.equal(m[0].pattern, "interleaved")
+        assert.equal(m[0].sequence_a, "abc")
+        assert.equal(m[0].sequence_b, "123")
+    })
+
+    test("does not match random string", () => {
+        assert.equal(interleavedSequenceMatch("xkJ9vQ").length, 0)
+    })
+
+    test("interleaved scores weak", () => {
+        assert.ok(zxcvbn("a1b2c3d4").score <= 2)
+    })
+})
+
+// ---------------------------------------------------------------------------
+
+suite("doubledSequenceMatch()", () => {
+    test("detects aabbccdd", () => {
+        const m = doubledSequenceMatch("aabbccdd")
+
+        assert.ok(m.length > 0, "expected aabbccdd to be detected")
+        assert.equal(m[0].base_sequence, "abcd")
+        assert.equal(m[0].repeat_count, 2)
+        assert.equal(m[0].ascending, true)
+    })
+
+    test("detects 11223344", () => {
+        assert.ok(doubledSequenceMatch("11223344").length > 0)
+    })
+
+    test("detects descending ddccbbaa", () => {
+        const m = doubledSequenceMatch("ddccbbaa")
+
+        assert.ok(m.length > 0, "expected ddccbbaa to be detected")
+        assert.equal(m[0].ascending, false)
+    })
+
+    test("does not match random string", () => {
+        assert.equal(doubledSequenceMatch("xkJ9vQ").length, 0)
+    })
+
+    test("doubled sequence scores weak", () => {
+        assert.ok(zxcvbn("aabbccdd").score <= 2)
     })
 })
 

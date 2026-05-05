@@ -17,7 +17,18 @@ export type RankedDictionaries = Record<string, RankedDictionary>
 // ----------------------------------------------------------------
 // Match pattern types
 // ----------------------------------------------------------------
-export type PatternName = "bruteforce" | "dictionary" | "spatial" | "repeat" | "sequence" | "regex" | "date" | "phone"
+export type PatternName =
+    | "bruteforce"
+    | "dictionary"
+    | "spatial"
+    | "repeat"
+    | "sequence"
+    | "regex"
+    | "date"
+    | "phone"
+    | "interleaved"
+    | "doubled_sequence"
+    | "email"
 
 // Base fields shared by every match
 interface BaseMatch {
@@ -91,6 +102,51 @@ export interface PhoneMatch extends BaseMatch {
     readonly phone_format: string
 }
 
+/**
+ * Interleaved sequence match — detects patterns like a1b2c3 where
+ * even-indexed chars form one sequence and odd-indexed chars form another.
+ **/
+export interface InterleavedMatch extends BaseMatch {
+    readonly pattern: "interleaved"
+    /** Even-indexed characters e.g. "abc" in "a1b2c3" */
+    readonly sequence_a: string
+    /** Odd-indexed characters e.g. "123" in "a1b2c3" */
+    readonly sequence_b: string
+    /** Delta between consecutive chars in sequence A */
+    readonly delta_a: number
+    /** Delta between consecutive chars in sequence B */
+    readonly delta_b: number
+}
+
+/**
+ * Doubled sequence match — detects patterns like aabbccdd where
+ * each character is repeated N times and consecutive chars form a sequence.
+ **/
+export interface DoubledSequenceMatch extends BaseMatch {
+    readonly pattern: "doubled_sequence"
+    /** The underlying sequence e.g. "abcd" in "aabbccdd" */
+    readonly base_sequence: string
+    /** How many times each char is repeated e.g. 2 in "aabbccdd" */
+    readonly repeat_count: number
+    /** Whether the sequence is ascending (true) or descending (false) */
+    readonly ascending: boolean
+}
+
+/**
+ * Email pattern match — detects passwords that are email addresses.
+ * Emails used as passwords are weak because they are often public
+ * information and follow a predictable structure.
+ **/
+export interface EmailMatch extends BaseMatch {
+    readonly pattern: "email"
+    /** The local part before @ e.g. "alice" in "alice@example.com" */
+    readonly local: string
+    /** The domain part after @ e.g. "example.com" */
+    readonly domain: string
+    /** The TLD e.g. "com" in "alice@example.com" */
+    readonly tld: string
+}
+
 export type Match =
     | BruteforceMatch
     | DictionaryMatch
@@ -100,6 +156,9 @@ export type Match =
     | RegexMatch
     | DateMatch
     | PhoneMatch
+    | InterleavedMatch
+    | DoubledSequenceMatch
+    | EmailMatch
 
 // -------------------------- //
 // Scoring Result             //

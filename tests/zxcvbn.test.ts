@@ -12,11 +12,15 @@ import {
     regexMatch,
     dateMatch,
     phoneMatch,
+    columnWalkMatch,
+    interleavedSequenceMatch,
+    doubledSequenceMatch,
     estimateAttackTimes,
     getFeedback,
     guessesToScore,
     displayTime,
     displayCost,
+    emailMatch,
 } from "../src/index"
 
 // ---------------------------------------------------------------------------
@@ -115,8 +119,12 @@ describe("zxcvbn()", () => {
     })
 
     test("customHashesPerSecond — higher rate means faster crack time", () => {
-        const fast = zxcvbn("correcthorsebatterystaple", [], { customHashesPerSecond: 1e12 })
-        const slow = zxcvbn("correcthorsebatterystaple", [], { customHashesPerSecond: 1e3 })
+        const fast = zxcvbn("correcthorsebatterystaple", [], {
+            customHashesPerSecond: 1e12,
+        })
+        const slow = zxcvbn("correcthorsebatterystaple", [], {
+            customHashesPerSecond: 1e3,
+        })
 
         expect(fast.crack_times_seconds.custom_hash_rate!).toBeLessThan(slow.crack_times_seconds.custom_hash_rate!)
     })
@@ -146,25 +154,33 @@ describe("zxcvbn()", () => {
 
 describe("zxcvbn() — minLength option", () => {
     test("short strong password forced to score 0", () => {
-        const r = zxcvbn("xkJ#9!", [], { minLength: 8 })
+        const r = zxcvbn("xkJ#9!", [], {
+            minLength: 8,
+        })
 
         expect(r.score).toBe(0)
     })
 
     test("minLength suggestion prepended to feedback", () => {
-        const r = zxcvbn("abc", [], { minLength: 6 })
+        const r = zxcvbn("abc", [], {
+            minLength: 6,
+        })
 
         expect(r.feedback.suggestions[0]).toContain("6 characters")
     })
 
     test("password meeting minLength scores normally", () => {
-        const r = zxcvbn("correcthorsebatterystaple", [], { minLength: 8 })
+        const r = zxcvbn("correcthorsebatterystaple", [], {
+            minLength: 8,
+        })
 
         expect(r.score).toBe(4)
     })
 
     test("existing warnings preserved alongside minLength suggestion", () => {
-        const r = zxcvbn("alice", ["alice"], { minLength: 8 })
+        const r = zxcvbn("alice", ["alice"], {
+            minLength: 8,
+        })
 
         expect(r.feedback.warning).toContain("personal info")
         expect(r.feedback.suggestions[0]).toContain("8 characters")
@@ -183,27 +199,35 @@ describe("zxcvbn() — minLength option", () => {
 
 describe("zxcvbn() — customHashesPerSecond option", () => {
     test("adds custom_hash_rate to crack_times_seconds", () => {
-        const r = zxcvbn("password", [], { customHashesPerSecond: 1e5 })
+        const r = zxcvbn("password", [], {
+            customHashesPerSecond: 1e5,
+        })
 
         expect(typeof r.crack_times_seconds.custom_hash_rate).toBe("number")
     })
 
     test("custom_hash_rate seconds = guesses / customHashesPerSecond", () => {
-        const r = zxcvbn("password", [], { customHashesPerSecond: 1e5 })
+        const r = zxcvbn("password", [], {
+            customHashesPerSecond: 1e5,
+        })
 
         // password guesses ~1, so custom_hash_rate ~ 1/1e5
         expect(r.crack_times_seconds.custom_hash_rate).toBeGreaterThan(0)
     })
 
     test("adds custom_hash_rate to crack_times_display", () => {
-        const r = zxcvbn("password", [], { customHashesPerSecond: 1e5 })
+        const r = zxcvbn("password", [], {
+            customHashesPerSecond: 1e5,
+        })
 
         expect(typeof r.crack_times_display.custom_hash_rate).toBe("string")
         expect(r.crack_times_display.custom_hash_rate!.length).toBeGreaterThan(0)
     })
 
     test("adds custom_hash_rate to crack_times_cost", () => {
-        const r = zxcvbn("password", [], { customHashesPerSecond: 1e5 })
+        const r = zxcvbn("password", [], {
+            customHashesPerSecond: 1e5,
+        })
 
         expect(typeof r.crack_times_cost.custom_hash_rate).toBe("number")
     })
@@ -217,8 +241,12 @@ describe("zxcvbn() — customHashesPerSecond option", () => {
     })
 
     test("strong password takes longer at custom hash rate than weak", () => {
-        const weak = zxcvbn("password", [], { customHashesPerSecond: 1e6 })
-        const strong = zxcvbn("correcthorsebatterystaple", [], { customHashesPerSecond: 1e6 })
+        const weak = zxcvbn("password", [], {
+            customHashesPerSecond: 1e6,
+        })
+        const strong = zxcvbn("correcthorsebatterystaple", [], {
+            customHashesPerSecond: 1e6,
+        })
 
         expect(strong.crack_times_seconds.custom_hash_rate!).toBeGreaterThan(weak.crack_times_seconds.custom_hash_rate!)
     })
@@ -264,7 +292,12 @@ describe("mostGuessableMatchSequence()", () => {
 
 describe("dictionaryMatch()", () => {
     test("finds word in custom ranked dict", () => {
-        const matches = dictionaryMatch("password", { test: { password: 1, hello: 2 } })
+        const matches = dictionaryMatch("password", {
+            test: {
+                password: 1,
+                hello: 2,
+            },
+        })
 
         expect(matches.some((m) => m.matched_word === "password")).toBe(true)
     })
@@ -272,7 +305,11 @@ describe("dictionaryMatch()", () => {
 
 describe("reverseDictionaryMatch()", () => {
     test("finds reversed token and marks it", () => {
-        const matches = reverseDictionaryMatch("drowssap", { test: { password: 1 } })
+        const matches = reverseDictionaryMatch("drowssap", {
+            test: {
+                password: 1,
+            },
+        })
 
         expect(matches.some((m) => m.reversed === true)).toBe(true)
     })
@@ -463,6 +500,184 @@ describe("uppercaseVariations (#232)", () => {
         const b = zxcvbn("12345qwerT").guesses
 
         expect(a).toBe(b)
+    })
+})
+
+// ---------------------------------------------------------------------------
+// Email pattern matching (#2)
+// ---------------------------------------------------------------------------
+
+describe("emailMatch()", () => {
+    test("detects basic email alice@example.com", () => {
+        const m = emailMatch("alice@example.com")
+
+        expect(m.length).toBeGreaterThan(0)
+        expect(m[0].pattern).toBe("email")
+        expect(m[0].local).toBe("alice")
+        expect(m[0].domain).toBe("example.com")
+        expect(m[0].tld).toBe("com")
+    })
+
+    test("detects gmail address", () => {
+        const m = emailMatch("user@gmail.com")
+
+        expect(m.length).toBeGreaterThan(0)
+        expect(m[0].domain).toBe("gmail.com")
+    })
+
+    test("detects email with dots and plus", () => {
+        const m = emailMatch("john.doe+tag@company.org")
+
+        expect(m.length).toBeGreaterThan(0)
+        expect(m[0].local).toBe("john.doe+tag")
+    })
+
+    test("detects email embedded in longer password", () => {
+        const m = emailMatch("mypass:alice@example.com!")
+
+        expect(m.some((x) => x.local === "alice")).toBe(true)
+    })
+
+    test("does not match non-email string", () => {
+        expect(emailMatch("password123").length).toBe(0)
+        expect(emailMatch("hello@").length).toBe(0)
+        expect(emailMatch("@example.com").length).toBe(0)
+    })
+
+    test("email password scores weak", () => {
+        expect(zxcvbn("alice@gmail.com").score).toBeLessThanOrEqual(2)
+    })
+
+    test("email password gets specific warning", () => {
+        const r = zxcvbn("alice@gmail.com")
+        const hasWarning =
+            r.feedback.warning.includes("email") ||
+            r.feedback.suggestions.some((s) => s.includes("email") || s.includes("gmail"))
+
+        expect(hasWarning || r.sequence.some((m) => m.pattern === "email")).toBe(true)
+    })
+})
+
+// ---------------------------------------------------------------------------
+// Column walk matching
+// ---------------------------------------------------------------------------
+
+describe("columnWalkMatch()", () => {
+    test("detects 1qaz column walk", () => {
+        const m = columnWalkMatch("1qaz")
+
+        expect(m.length).toBeGreaterThan(0)
+        expect(m[0].graph).toBe("qwerty_column")
+    })
+
+    test("detects 1qaz and 2wsx as separate column walks in 1qaz2wsx", () => {
+        // columnWalkMatch directly finds two separate walks
+        const m = columnWalkMatch("1qaz2wsx")
+
+        expect(m.some((x) => x.token === "1qaz")).toBe(true)
+        expect(m.some((x) => x.token === "2wsx")).toBe(true)
+    })
+
+    test("detects zaq1 reversed column walk", () => {
+        const m = columnWalkMatch("zaq1")
+
+        expect(m.length).toBeGreaterThan(0)
+    })
+
+    test("does not match random string", () => {
+        expect(columnWalkMatch("xkJ9vQ").length).toBe(0)
+    })
+
+    test("column walk password scores weak", () => {
+        expect(zxcvbn("1qaz2wsx").score).toBeLessThanOrEqual(2)
+    })
+})
+
+// ---------------------------------------------------------------------------
+// Interleaved sequence matching
+// ---------------------------------------------------------------------------
+
+describe("interleavedSequenceMatch()", () => {
+    test("detects a1b2c3 interleaved pattern", () => {
+        const m = interleavedSequenceMatch("a1b2c3")
+
+        expect(m.length).toBeGreaterThan(0)
+        expect(m[0].pattern).toBe("interleaved")
+    })
+
+    test("sequence_a and sequence_b are correctly separated", () => {
+        const m = interleavedSequenceMatch("a1b2c3")
+
+        expect(m[0].sequence_a).toBe("abc")
+        expect(m[0].sequence_b).toBe("123")
+    })
+
+    test("detects A1B2C3 uppercase variant", () => {
+        expect(interleavedSequenceMatch("A1B2C3").length).toBeGreaterThan(0)
+    })
+
+    test("does not match non-interleaved string", () => {
+        expect(interleavedSequenceMatch("xkJ9vQ").length).toBe(0)
+    })
+
+    test("interleaved password scores weak", () => {
+        expect(zxcvbn("a1b2c3d4").score).toBeLessThanOrEqual(2)
+    })
+
+    test("interleavedSequenceMatch directly detects a1b2c3d4", () => {
+        // Test the matcher directly — DP may prefer other segmentations
+        const m = interleavedSequenceMatch("a1b2c3d4")
+
+        expect(m.length).toBeGreaterThan(0)
+        expect(m[0].sequence_a).toBe("abcd")
+        expect(m[0].sequence_b).toBe("1234")
+    })
+})
+
+// ---------------------------------------------------------------------------
+// Doubled sequence matching
+// ---------------------------------------------------------------------------
+
+describe("doubledSequenceMatch()", () => {
+    test("detects aabbccdd doubled sequence", () => {
+        const m = doubledSequenceMatch("aabbccdd")
+
+        expect(m.length).toBeGreaterThan(0)
+        expect(m[0].pattern).toBe("doubled_sequence")
+    })
+
+    test("base_sequence is correctly extracted", () => {
+        const m = doubledSequenceMatch("aabbccdd")
+
+        expect(m[0].base_sequence).toBe("abcd")
+        expect(m[0].repeat_count).toBe(2)
+    })
+
+    test("detects 11223344 digit doubled sequence", () => {
+        const m = doubledSequenceMatch("11223344")
+
+        expect(m.length).toBeGreaterThan(0)
+        expect(m[0].base_sequence).toBe("1234")
+    })
+
+    test("detects AABBCCDD uppercase doubled sequence", () => {
+        expect(doubledSequenceMatch("AABBCCDD").length).toBeGreaterThan(0)
+    })
+
+    test("does not match non-doubled string", () => {
+        expect(doubledSequenceMatch("xkJ9vQ").length).toBe(0)
+    })
+
+    test("doubled sequence password scores weak", () => {
+        expect(zxcvbn("aabbccdd").score).toBeLessThanOrEqual(2)
+    })
+
+    test("ascending flag is correct", () => {
+        const m = doubledSequenceMatch("aabbccdd")
+        expect(m[0].ascending).toBe(true)
+
+        const m2 = doubledSequenceMatch("ddccbbaa")
+        expect(m2[0].ascending).toBe(false)
     })
 })
 

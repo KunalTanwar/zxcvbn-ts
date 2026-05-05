@@ -214,8 +214,14 @@ function describeSequence(sequence: Match[]): string {
                     return `"${m.token}" looks like a date (${m.year}-${m.month}-${m.day})`
                 case "phone":
                     return `"${m.token}" looks like a phone number (${m.phone_format} format)`
+                case "interleaved":
+                    return `"${m.token}" alternates two sequences (${m.sequence_a} / ${m.sequence_b})`
+                case "doubled_sequence":
+                    return `"${m.token}" doubles each character in a sequence (${m.base_sequence} x ${m.repeat_count})`
                 case "bruteforce":
                     return `"${m.token}" has no recognisable pattern`
+                case "email":
+                    return `"${m.token}" is an email address (local: ${m.local}, domain: ${m.domain})`
             }
         })
         .join("; ")

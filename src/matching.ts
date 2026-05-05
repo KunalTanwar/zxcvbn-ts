@@ -14,6 +14,9 @@ import type {
     RankedDictionaries,
     L33tTable,
     AdjacencyGraph,
+    DoubledSequenceMatch,
+    InterleavedMatch,
+    EmailMatch,
 } from "./types"
 
 // ----------------------------------------------------------------
@@ -155,11 +158,15 @@ export function omnimatch(password: string): Match[] {
         reverseDictionaryMatch,
         l33tMatch,
         spatialMatch,
+        columnWalkMatch,
         repeatMatch,
         sequenceMatch,
         regexMatch,
         dateMatch,
         phoneMatch,
+        interleavedSequenceMatch,
+        doubledSequenceMatch,
+        emailMatch,
     ]
 
     for (const matcher of matchers) {
@@ -180,6 +187,8 @@ export function dictionaryMatch(
     const matches: DictionaryMatch[] = []
     const len = password.length
     const passwordLower = password.toLowerCase()
+    // Fix #97: also try a diacritics-stripped version so passwords like
+    // "pässwörd" are matched against "password" in the dictionary.
     const passwordNormalized = passwordLower.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
 
     for (const [dictionaryName, rankedDict] of Object.entries(rankedDictionaries)) {
@@ -854,6 +863,424 @@ export function phoneMatch(password: string): PhoneMatch[] {
                 phone_format: name,
             })
         }
+    }
+
+    return sorted(matches)
+}
+
+// ----------------------------------------------------------------
+// Column walk matching
+// Detects keyboard column patterns like 1qaz, !QAZ, zaq1, 1qaz2wsx
+// ----------------------------------------------------------------
+
+/**
+ * Physical `[column, row]` positions of each key on a standard qwerty keyboard.
+ * Columns are 1-indexed from the left. Rows are 0=numbers, 1=qwerty,
+ * 2=asdf, 3=zxcv.
+ */
+const QWERTY_KEY_POS: Readonly<Record<string, readonly [number, number]>> = {
+    // Number row
+    "`": [0, 0],
+    "1": [1, 0],
+    "2": [2, 0],
+    "3": [3, 0],
+    "4": [4, 0],
+    "5": [5, 0],
+    "6": [6, 0],
+    "7": [7, 0],
+    "8": [8, 0],
+    "9": [9, 0],
+    "0": [10, 0],
+    "-": [11, 0],
+    "=": [12, 0],
+    // QWERTY row
+    q: [1, 1],
+    w: [2, 1],
+    e: [3, 1],
+    r: [4, 1],
+    t: [5, 1],
+    y: [6, 1],
+    u: [7, 1],
+    i: [8, 1],
+    o: [9, 1],
+    p: [10, 1],
+    "[": [11, 1],
+    "]": [12, 1],
+    "\\": [13, 1],
+    // ASDF row
+    a: [1, 2],
+    s: [2, 2],
+    d: [3, 2],
+    f: [4, 2],
+    g: [5, 2],
+    h: [6, 2],
+    j: [7, 2],
+    k: [8, 2],
+    l: [9, 2],
+    ";": [10, 2],
+    "'": [11, 2],
+    // ZXCV row
+    z: [1, 3],
+    x: [2, 3],
+    c: [3, 3],
+    v: [4, 3],
+    b: [5, 3],
+    n: [6, 3],
+    m: [7, 3],
+    ",": [8, 3],
+    ".": [9, 3],
+    "/": [10, 3],
+}
+
+/** Shifted key → unshifted key for position lookup. */
+const QWERTY_SHIFT_MAP: Readonly<Record<string, string>> = {
+    "~": "`",
+    "!": "1",
+    "@": "2",
+    "#": "3",
+    $: "4",
+    "%": "5",
+    "^": "6",
+    "&": "7",
+    "*": "8",
+    "(": "9",
+    ")": "0",
+    _: "-",
+    "+": "=",
+    Q: "q",
+    W: "w",
+    E: "e",
+    R: "r",
+    T: "t",
+    Y: "y",
+    U: "u",
+    I: "i",
+    O: "o",
+    P: "p",
+    "{": "[",
+    "}": "]",
+    "|": "\\",
+    A: "a",
+    S: "s",
+    D: "d",
+    F: "f",
+    G: "g",
+    H: "h",
+    J: "j",
+    K: "k",
+    L: "l",
+    ":": ";",
+    '"': "'",
+    Z: "z",
+    X: "x",
+    C: "c",
+    V: "v",
+    B: "b",
+    N: "n",
+    M: "m",
+    "<": ",",
+    ">": ".",
+    "?": "/",
+}
+
+function getQwertyPos(char: string): readonly [number, number] | null {
+    const key = QWERTY_SHIFT_MAP[char] ?? char
+
+    return QWERTY_KEY_POS[key] ?? null
+}
+
+/**
+ * Detect keyboard column walk patterns.
+ * A column walk moves in a consistent direction on the physical key grid —
+ * same column (1qaz), diagonal (qazwsx), or reverse (zaq1).
+ * Returns SpatialMatch with graph "qwerty_column" for specialised scoring.
+ */
+export function columnWalkMatch(password: string): SpatialMatch[] {
+    const matches: SpatialMatch[] = []
+    let i = 0
+
+    while (i < password.length - 2) {
+        const startPos = getQwertyPos(password[i])
+
+        if (!startPos) {
+            i++
+            continue
+        }
+
+        let [prevCol, prevRow] = startPos
+        let rowDelta = 0
+        let colDelta = 0
+        let shiftedCount = password[i] in QWERTY_SHIFT_MAP ? 1 : 0
+        let j = i + 1
+
+        while (j < password.length) {
+            const curPos = getQwertyPos(password[j])
+
+            if (!curPos) break
+
+            const [curCol, curRow] = curPos
+            const dr = curRow - prevRow
+            const dc = curCol - prevCol
+
+            if (j === i + 1) {
+                // First step — must move by exactly 1 row, at most 1 column
+                if (Math.abs(dr) !== 1 || Math.abs(dc) > 1) break
+                rowDelta = dr
+                colDelta = dc
+            } else {
+                // Must maintain exact direction
+                if (dr !== rowDelta || dc !== colDelta) break
+            }
+
+            prevCol = curCol
+            prevRow = curRow
+
+            if (password[j] in QWERTY_SHIFT_MAP) shiftedCount++
+
+            j++
+        }
+
+        const length = j - i
+
+        if (length >= 3) {
+            matches.push({
+                pattern: "spatial",
+                i,
+                j: j - 1,
+                token: password.slice(i, j),
+                graph: "qwerty_column",
+                turns: 0,
+                shifted_count: shiftedCount,
+            })
+            i = j
+        } else {
+            i++
+        }
+    }
+
+    return matches
+}
+
+// ----------------------------------------------------------------
+// Interleaved Sequence Matching
+// Detects patterns like a1b2c3, A1B2C3 where even-indexed chars
+// form one arithmetic sequence and odd-indexed chars form another.
+// ----------------------------------------------------------------
+
+/**
+ * Detect interleaved sequence patterns.
+ * For a1b2c3: even positions [a,b,c] form ascending alpha sequence,
+ * odd positions [1,2,3] form ascending digit sequence.
+ */
+export function interleavedSequenceMatch(password: string): InterleavedMatch[] {
+    const matches: InterleavedMatch[] = []
+    if (password.length < 4) return matches
+
+    let i = 0
+
+    while (i <= password.length - 4) {
+        // Need at least 2 chars from each interleaved sequence (4 total)
+        const deltaA = password.charCodeAt(i + 2) - password.charCodeAt(i)
+        const deltaB = password.charCodeAt(i + 3) - password.charCodeAt(i + 1)
+
+        // Both deltas must be non-zero and small (no wild jumps)
+        if (deltaA === 0 || deltaB === 0 || Math.abs(deltaA) > 5 || Math.abs(deltaB) > 5) {
+            i++
+
+            continue
+        }
+
+        // Extend as far as the pattern holds
+        let length = 4
+        let k = 4
+
+        while (i + k < password.length) {
+            const expectedDelta = k % 2 === 0 ? deltaA : deltaB
+            const actual = password.charCodeAt(i + k) - password.charCodeAt(i + k - 2)
+
+            if (actual !== expectedDelta) break
+
+            k++
+            length++
+        }
+
+        if (length < 4) {
+            i++
+            continue
+        }
+
+        const token = password.slice(i, i + length)
+        const seqA = Array.from({ length: Math.ceil(length / 2) }, (_, idx) => password[i + idx * 2]).join("")
+        const seqB = Array.from({ length: Math.floor(length / 2) }, (_, idx) => password[i + 1 + idx * 2]).join("")
+
+        matches.push({
+            pattern: "interleaved",
+            i,
+            j: i + length - 1,
+            token,
+            sequence_a: seqA,
+            sequence_b: seqB,
+            delta_a: deltaA,
+            delta_b: deltaB,
+        })
+
+        i += length
+    }
+
+    return sorted(matches)
+}
+
+// ----------------------------------------------------------------
+// Doubled Sequence Matching (#5)
+// Detects patterns like aabbccdd where each char is repeated N times
+// and consecutive chars form an arithmetic sequence.
+// ----------------------------------------------------------------
+
+/**
+ * Detect doubled (or tripled) sequence patterns.
+ * aabbccdd → each char doubled, chars ascend by 1.
+ * 11223344 → same with digits.
+ * AABBCCDD → same with uppercase.
+ */
+export function doubledSequenceMatch(password: string): DoubledSequenceMatch[] {
+    const matches: DoubledSequenceMatch[] = []
+
+    if (password.length < 4) return matches
+
+    let i = 0
+
+    while (i <= password.length - 4) {
+        for (const n of [2, 3]) {
+            // Need at least 2 groups of n chars each
+            if (i + n * 2 > password.length) continue
+
+            // Verify first group: all same character
+            const firstChar = password[i]
+
+            let firstGroupValid = true
+
+            for (let k = 1; k < n; k++) {
+                if (password[i + k] !== firstChar) {
+                    firstGroupValid = false
+
+                    break
+                }
+            }
+
+            if (!firstGroupValid) continue
+
+            // Get delta between first and second group
+            const secondChar = password[i + n]
+            const delta = secondChar.charCodeAt(0) - firstChar.charCodeAt(0)
+
+            if (delta === 0 || Math.abs(delta) > 3) continue
+
+            // Verify second group: all same character (secondChar)
+            let secondGroupValid = true
+
+            for (let k = 1; k < n; k++) {
+                if (password[i + n + k] !== secondChar) {
+                    secondGroupValid = false
+
+                    break
+                }
+            }
+
+            if (!secondGroupValid) continue
+
+            // Extend as far as possible
+            let groupCount = 2
+            let pos = i + n * 2
+
+            while (pos + n <= password.length) {
+                const expectedChar = String.fromCharCode(firstChar.charCodeAt(0) + delta * groupCount)
+                let groupValid = true
+
+                for (let k = 0; k < n; k++) {
+                    if (password[pos + k] !== expectedChar) {
+                        groupValid = false
+
+                        break
+                    }
+                }
+
+                if (!groupValid) break
+
+                groupCount++
+
+                pos += n
+            }
+
+            if (groupCount < 2) continue
+
+            const length = groupCount * n
+            if (length < 4) continue
+
+            const token = password.slice(i, i + length)
+            const baseSeq = Array.from({ length: groupCount }, (_, idx) =>
+                String.fromCharCode(firstChar.charCodeAt(0) + delta * idx),
+            ).join("")
+
+            matches.push({
+                pattern: "doubled_sequence",
+                i,
+                j: i + length - 1,
+                token,
+                base_sequence: baseSeq,
+                repeat_count: n,
+                ascending: delta > 0,
+            })
+
+            i += length
+
+            break // found a match at this position, move on
+        }
+
+        // If no match found at this position, try next
+        if (matches.length === 0 || matches[matches.length - 1].i !== i) {
+            i++
+        }
+    }
+
+    return sorted(matches)
+}
+
+// ----------------------------------------------------------------
+// Email pattern matching
+// Detects passwords that are email addresses. Emails used as
+// passwords are weak — they are public, predictable, and reused
+// across many services.
+// ----------------------------------------------------------------
+
+/**
+ * Permissive email regex — catches real-world email-as-password
+ * patterns without strict RFC 5321 compliance.
+ **/
+const EMAIL_RE = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g
+
+export function emailMatch(password: string): EmailMatch[] {
+    const matches: EmailMatch[] = []
+    EMAIL_RE.lastIndex = 0
+
+    let m: RegExpExecArray | null
+
+    while ((m = EMAIL_RE.exec(password)) !== null) {
+        const token = m[0]
+        const atIdx = token.indexOf("@")
+        const local = token.slice(0, atIdx)
+        const domain = token.slice(atIdx + 1)
+        const dotIdx = domain.lastIndexOf(".")
+        const tld = dotIdx >= 0 ? domain.slice(dotIdx + 1) : ""
+
+        matches.push({
+            pattern: "email",
+            i: m.index,
+            j: m.index + token.length - 1,
+            token,
+            local,
+            domain,
+            tld,
+        })
     }
 
     return sorted(matches)

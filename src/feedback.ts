@@ -1,5 +1,15 @@
 import { START_UPPER, ALL_UPPER } from "./scoring"
-import type { Match, Feedback, DictionaryMatch, SpatialMatch, RepeatMatch, RegexMatch, PhoneMatch } from "./types"
+import type {
+    Match,
+    Feedback,
+    DictionaryMatch,
+    SpatialMatch,
+    RepeatMatch,
+    RegexMatch,
+    PhoneMatch,
+    DoubledSequenceMatch,
+    EmailMatch,
+} from "./types"
 
 const DEFAULT_FEEDBACK: Feedback = {
     warning: "",
@@ -90,7 +100,7 @@ function getMatchFeedback(match: Match, isSoleMatch: boolean): Feedback | null {
                 suggestions: ["Avoid dates and years that are associated with you"],
             }
 
-        case "phone":
+        case "phone": {
             const pm = match as PhoneMatch
             const fmt =
                 pm.phone_format === "nanp"
@@ -106,6 +116,54 @@ function getMatchFeedback(match: Match, isSoleMatch: boolean): Feedback | null {
                     "Phone numbers can be looked up or guessed by area code",
                 ],
             }
+        }
+
+        case "interleaved":
+            return {
+                warning: "Alternating sequences are easy to guess",
+                suggestions: [
+                    "Patterns like a1b2c3 or A1B2C3 are well-known and easy to crack",
+                    "Mix unrelated characters rather than interleaving sequences",
+                ],
+            }
+
+        case "doubled_sequence": {
+            const dm = match as DoubledSequenceMatch
+            const dir = dm.ascending ? "ascending" : "descending"
+
+            return {
+                warning: `Doubled ${dir} sequences are predictable`,
+                suggestions: [
+                    `Patterns like aabbccdd or 11223344 are easy to enumerate`,
+                    "Use unrelated characters instead of repeated sequences",
+                ],
+            }
+        }
+
+        case "email": {
+            const em = match as EmailMatch
+            const isCommon = [
+                "gmail.com",
+                "yahoo.com",
+                "hotmail.com",
+                "outlook.com",
+                "icloud.com",
+                "aol.com",
+                "protonmail.com",
+                "live.com",
+            ].includes(em.domain.toLowerCase())
+
+            return {
+                warning: "Email addresses are easy to guess and often publicly known",
+                suggestions: [
+                    isCommon
+                        ? `Using a ${em.domain} address as a password is especially risky`
+                        : "Avoid using your email address as a password",
+                    "Attackers try email addresses first since they are often reused",
+                ],
+            }
+        }
+
         default:
             return null
     }
@@ -168,7 +226,7 @@ function getDictionaryMatchFeedback(match: DictionaryMatch, isSoleMatch: boolean
         const subDisplay = match.sub_display
 
         if (subDisplay) {
-            suggestions.push(`Predictable substiutions like '${subDisplay}' don't help very much`)
+            suggestions.push(`Predictable substitutions like '${subDisplay}' don't help very much`)
         } else {
             suggestions.push("Predictable substitutions like '@' instead of 'a' don't help very much")
         }

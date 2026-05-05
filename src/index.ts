@@ -18,6 +18,9 @@ export type {
     RegexMatch,
     DateMatch,
     PhoneMatch,
+    InterleavedMatch,
+    DoubledSequenceMatch,
+    EmailMatch,
     PatternName,
     RankedDictionary,
     RankedDictionaries,
@@ -39,6 +42,10 @@ export {
     regexMatch,
     dateMatch,
     phoneMatch,
+    columnWalkMatch,
+    interleavedSequenceMatch,
+    doubledSequenceMatch,
+    emailMatch,
     setUserInputDictionary,
 } from "./matching"
 export { estimateAttackTimes, guessesToScore, displayTime, displayCost } from "./time_estimates"

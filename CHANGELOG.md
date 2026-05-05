@@ -2,6 +2,41 @@
 
 All notable changes to **zxcvbn-ts** are documented here.
 
+## [2.1.0] — May 2026
+
+### Features
+
+- **Email pattern detection** — new `emailMatch()` matcher detects passwords that are email addresses. Emails are penalised as weak passwords since they are often public, predictable, and reused across services. Common providers (`gmail.com`, `hotmail.com` etc.) receive additional penalisation.
+
+    ```ts
+    import { zxcvbn, emailMatch } from "zxcvbn-ts"
+
+    emailMatch("alice@gmail.com")
+    // [{ pattern: "email", local: "alice", domain: "gmail.com", tld: "com", ... }]
+
+    zxcvbn("alice@gmail.com").score // ≤ 2
+    zxcvbn("alice@gmail.com").feedback.warning
+    // "Email addresses are easy to guess and often publicly known"
+    ```
+
+- **Column Walk Detection** — new `columnWalkMatch()` matcher detects vertical and diagonal keyboard patterns like `1qaz`, `2wsx`, `zaq1`, `!QAZ`, and `1qaz2wsx`. Returns a `SpatialMatch` with `graph: "qwerty_column"` for specialised scoring.
+- **Interleaved Sequence Detection** — new `interleavedSequenceMatch()` matcher detects patterns where two sequences alternate position-by-position. `a1b2c3` → `sequence_a: "abc"`, `sequence_b: "123"`. Works for alpha+digit, alpha+alpha, digit+digit combinations.
+- **Doubled Sequence Detection** — new `doubledSequenceMatch()` matcher detects patterns where each character in a sequence is repeated N times. `aabbccdd` → `base_sequence: "abcd"`, `repeat_count: 2`. Detects repeat counts of 2 and 3, ascending and descending.
+
+### New types
+
+- `EmailMatch` interface with `local`, `domain`, and `tld` fields.
+- `InterleavedMatch` interface with `sequence_a`, `sequence_b`, `delta_a`, `delta_b` fields.
+- `DoubledSequenceMatch` interface with `base_sequence`, `repeat_count`, `ascending` fields.
+- All added to `Match` discriminated union and `PatternName`.
+
+### Tests
+
+- Added 7 tests for `emailMatch()` across `zxcvbn.test.ts` and `run.js`.
+- Added 9 tests for `columnWalkMatch()` across both test files.
+- Added 9 tests for `interleavedSequenceMatch()` across both test files.
+- Added 12 tests for `doubledSequenceMatch()` across both test files.
+
 # [2.0.2] — April 2026
 
 ### Housekeeping

@@ -25,6 +25,7 @@ A complete TypeScript rewrite of Dropbox's [zxcvbn](https://github.com/dropbox/z
 - **Dual CJS/ESM Output** — works in Node.js, Bun, bundlers, and modern browsers
 - **Populated Dictionaries** — all 93,855 words across 6 frequency lists included out of the box
 - **Optional AI Feedback** — personalised explanations via Claude, ChatGPT, Gemini, or any custom adapter
+- **HIBP Breach Check** — `zxcvbn-ts/pwned` checks if a password has appeared in a known breach via k-anonymity API
 - **Email Pattern Detection** — email addresses used as passwords are detected and penalised
 - **Phone Number Detection** — NANP, international, and local formats detected and penalised
 - **`minLength` option** — enforce a minimum password length, forcing score 0 with a clear suggestion
@@ -195,8 +196,96 @@ for (const m of result.sequence) {
         console.log(m.year, m.month, m.day)
     } else if (m.pattern === "phone") {
         console.log(m.phone_number, m.phone_format)
+    } else if (m.pattern === "email") {
+        console.log(m.local, m.domain, m.tld)
     }
 }
+```
+
+## Breach check (`zxcvbn-ts/pwned`)
+
+### What is Have I Been Pwned?
+
+[Have I Been Pwned](https://haveibeenpwned.com) (HIBP) is a free service created by security researcher Troy Hunt that aggregates data from hundreds of known data breaches — collections of leaked credentials from companies like Adobe, LinkedIn, and RockYou. The Pwned Passwords API exposes a database of over 800 million real-world passwords that have been exposed in breaches.
+
+If a password appears in this list, an attacker using a breach dictionary attack would try it immediately — regardless of how complex it looks.
+
+### How k-anonymity works
+
+Sending a password to a third-party API would be a serious security risk. HIBP solves this with a k-anonymity model:
+
+```
+1. Hash the password locally with SHA1
+   "password" → "5BAA61E4C9B93F3F0682250B6CF8331B7EE68FD8"
+
+2. Send only the first 5 characters to the API
+   GET https://api.pwnedpasswords.com/range/5BAA6
+
+3. HIBP returns ~800 hash suffixes that share that prefix
+   1E4C9B93F3F0682250B6CF8331B7EE68FD8:3861493
+   ...hundreds more...
+
+4. Check locally whether your suffix is in the list
+   Found — password appears in 3,861,493 breaches
+```
+
+The actual password and the full hash never leave your server. HIBP never sees more than 5 characters.
+
+### Usage
+
+```ts
+import { checkPwned } from "zxcvbn-ts/pwned"
+
+const result = await checkPwned("password123")
+
+result.isPwned // true
+result.breachCount // 3861493
+result.breachDisplay // "seen in 3,861,493 breaches"
+```
+
+### ⚠️ Server-side only
+
+`checkPwned()` is designed for server-side use (Node.js, Bun, Edge Functions). While the k-anonymity model protects the password itself, calling it from a browser exposes the 5-character hash prefix to network intermediaries and your users' ISPs. Keep breach checks server-side.
+
+```ts
+// ✅ Server-side — safe
+const result = await checkPwned(password)
+
+// ❌ Avoid in browser — hash prefix visible to network
+```
+
+### Combined with `zxcvbn()`
+
+```ts
+import { zxcvbn } from "zxcvbn-ts"
+import { checkPwned } from "zxcvbn-ts/pwned"
+
+const strength = zxcvbn(password)
+const breach = await checkPwned(password)
+
+// A breached password is always weak regardless of entropy
+const finalScore = breach.isPwned ? 0 : strength.score
+const warning = breach.isPwned
+    ? `Found in ${breach.breachDisplay} — change this password immediately`
+    : strength.feedback.warning
+```
+
+### `PwnedResult`
+
+| Field           | Type      | Description                                               |
+| --------------- | --------- | --------------------------------------------------------- |
+| `isPwned`       | `boolean` | Whether the password appears in any known breach          |
+| `breachCount`   | `number`  | Number of times seen across all breaches. 0 if not found  |
+| `breachDisplay` | `string`  | Human-readable string e.g. `"seen in 3,861,493 breaches"` |
+
+### Options
+
+```ts
+await checkPwned(password, {
+    timeoutMs: 3000, // request timeout, default: 5000ms
+    userAgent: "myapp/1.0", // HIBP recommends identifying your app
+    fetch: customFetchImpl, // custom fetch, useful for testing
+})
 ```
 
 ## AI-powered Feedback
@@ -393,27 +482,27 @@ Status of all tracked issues from the [original zxcvbn repository](https://githu
 | Issue                                                | Title                                                                                                         | Note                                                                                                                                                                                                                          | Status                                                      |
 | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
 | [#363](https://github.com/dropbox/zxcvbn/issues/363) | Massive Memory Footprint                                                                                      | Fixed by shipping frequency lists as a single minified JSON file in `dist/data/` — shipped once instead of 3× across CJS/ESM/types.                                                                                           | ✅ Fixed                                                    |
-| [#338](https://github.com/dropbox/zxcvbn/issues/338) | Feature request: provide options for smaller builds                                                           | The JSON frequency list is a standalone file that can be replaced. `setUserInputDictionary()` supports injecting custom dictionaries at runtime.                                                                              | ✅ Already Solved                                           |
+| [#338](https://github.com/dropbox/zxcvbn/issues/338) | Feature request: provide options for smaller builds                                                           | The JSON frequency list is a standalone file that can be replaced. `setUserInputDictionary()` supports injecting custom dictionaries at runtime.                                                                              | ✅ Fixed                                                    |
 | [#327](https://github.com/dropbox/zxcvbn/issues/327) | A ReDoS vulnerability exists in matching.coffee                                                               | Replaced the vulnerable `^(.+?)\1+$` regex with a safe string-length comparison in `repeatMatch`. Attack string now processes in ~79ms vs 892ms.                                                                              | ✅ Fixed                                                    |
 | [#326](https://github.com/dropbox/zxcvbn/issues/326) | Possible DOS when run server side                                                                             | Fixed with a 128-char password limit and 100-char per-userInput limit in `main.ts`.                                                                                                                                           | ✅ Fixed                                                    |
 | [#318](https://github.com/dropbox/zxcvbn/issues/318) | recent year regex is... out of date.                                                                          | Updated regex from `/19\d\d\|200\d\|201\d/` to `/19\d\d\|20[0-3]\d/` in `matching.ts` — now covers years up to 2039.                                                                                                          | ✅ Fixed                                                    |
 | [#316](https://github.com/dropbox/zxcvbn/issues/316) | Very slow for certain inputs                                                                                  | Added early exit in `repeatMatch` for all-unique-char passwords and capped l33t substitution enumeration at 4 distinct chars. Reduced from 1500ms → 9ms for the reported input.                                               | ⚠️ Partially Fixed                                          |
 | [#300](https://github.com/dropbox/zxcvbn/issues/300) | Can `zxcvbn()` method take the `minlength` parameter also for validation                                      | Not present in the original either — length validation is the caller's responsibility.                                                                                                                                        | ✅ Fixed                                                    |
-| [#291](https://github.com/dropbox/zxcvbn/issues/291) | Easy way to add build and add custom dictionaries                                                             | Already supported via the exported `setUserInputDictionary()` function.                                                                                                                                                       | ✅ Already supported                                        |
+| [#291](https://github.com/dropbox/zxcvbn/issues/291) | Easy way to add build and add custom dictionaries                                                             | Already supported via the exported `setUserInputDictionary()` function.                                                                                                                                                       | ✅ Fixed                                                    |
 | [#284](https://github.com/dropbox/zxcvbn/issues/284) | How to configure i18n support                                                                                 | Requires non-English word lists and translated feedback strings. **Out of scope** for this rewrite.                                                                                                                           | ❌ Not Fixed                                                |
 | [#276](https://github.com/dropbox/zxcvbn/issues/276) | Score incongruous for repeated words                                                                          | The repeat matcher includes trailing spaces in the token. **Algorithmic Limitation** inherited from the original.                                                                                                             | ❌ Not Fixed                                                |
 | [#274](https://github.com/dropbox/zxcvbn/issues/274) | Algorithm does not recognize dictionary words in certain cases                                                | The DP finds the minimum-guesses path, not the maximum-matches path. **Algorithmic Limitation**.                                                                                                                              | ❌ Not Fixed                                                |
 | [#273](https://github.com/dropbox/zxcvbn/issues/273) | Dictionary leaves out common words                                                                            | The frequency lists are derived from Wikipedia and common passwords — not a general English dictionary.                                                                                                                       | ❌ Not Fixed                                                |
 | [#272](https://github.com/dropbox/zxcvbn/issues/272) | Fash hash threat model might be optimistic                                                                    | Threat model constants are unchanged from original. Modern GPU hash rates may warrant updating.                                                                                                                               | ✅ Fixed                                                    |
-| [#268](https://github.com/dropbox/zxcvbn/issues/268) | Evaluate to create a minified version that do not implement check on frequency list                           | Users can replace `data/frequency_lists.json` with `{}` for a frequency-list-free build.                                                                                                                                      | ⚠️ Partially Solved — users can replace the JSON file       |
+| [#268](https://github.com/dropbox/zxcvbn/issues/268) | Evaluate to create a minified version that do not implement check on frequency list                           | Users can replace `data/frequency_lists.json` with `{}` for a frequency-list-free build.                                                                                                                                      | ⚠️ Partially Fixed — users can replace the JSON file        |
 | [#267](https://github.com/dropbox/zxcvbn/issues/267) | User Inputs transformed to lower case leads to unexpectedly high score for upper case variants of user inputs | Fixed in `main.ts` — original-cased user inputs are now also added to the ranked dictionary alongside the lowercased version.                                                                                                 | ✅ Fixed                                                    |
 | [#264](https://github.com/dropbox/zxcvbn/issues/264) | Bruteforce entropy estimator does not account for cardinality                                                 | `BRUTEFORCE_CARDINALITY` is fixed at 10 regardless of actual character set. Fixing this properly **requires algorithm changes**.                                                                                              | ❌ Not Fixed                                                |
 | [#234](https://github.com/dropbox/zxcvbn/issues/234) | Add Markov Chain recognition                                                                                  | Would require a Markov chain model trained on password datasets. Significant addition — **not in scope**.                                                                                                                     | ❌ Not Fixed                                                |
 | [#232](https://github.com/dropbox/zxcvbn/issues/232) | Passwords recognized as single tokens inconsistently rewarded for capitalization                              | Fixed in `scoring.ts` — `uppercaseVariations` now strips non-letter chars before computing the multiplier. `12345Qwert` and `12345qwerT` now both yield 1009 guesses.                                                         | ✅ Fixed                                                    |
 | [#231](https://github.com/dropbox/zxcvbn/issues/231) | No specific suggestion or warning given for passwords that are too weak because of user imputs                | Fixed in `feedback.ts` — added a specific case for `dictionary_name === "user_inputs"` returning: "This password is on your personal info list".                                                                              | ✅ Fixed                                                    |
 | [#227](https://github.com/dropbox/zxcvbn/issues/227) | user_inputs argument                                                                                          | `user_inputs` works for whole-token matches within the DP. Short words may not match across token boundaries. **DP Limitation**.                                                                                              | ❌ Not Fixed                                                |
-| [#223](https://github.com/dropbox/zxcvbn/issues/223) | Group repetition not detected                                                                                 | Group repetitions like `abcabcabc` are already correctly detected as `repeat(abcabcabc)` in my TypeScript rewrite.                                                                                                            | ✅ Already Fixed                                            |
-| [#221](https://github.com/dropbox/zxcvbn/issues/221) | Possible L33t Matcher Bug - Relevant L33t Subtable Always Empty                                               | The l33t subtable bug existed in the original CoffeeScript. My TypeScript rewrite correctly identifies l33t matches.                                                                                                          | ✅ Already Fixed                                            |
+| [#223](https://github.com/dropbox/zxcvbn/issues/223) | Group repetition not detected                                                                                 | Group repetitions like `abcabcabc` are already correctly detected as `repeat(abcabcabc)` in my TypeScript rewrite.                                                                                                            | ✅ Fixed                                                    |
+| [#221](https://github.com/dropbox/zxcvbn/issues/221) | Possible L33t Matcher Bug - Relevant L33t Subtable Always Empty                                               | The l33t subtable bug existed in the original CoffeeScript. My TypeScript rewrite correctly identifies l33t matches.                                                                                                          | ✅ Fixed                                                    |
 | [#216](https://github.com/dropbox/zxcvbn/issues/216) | Match tokens not accurate with spaces                                                                         | Spaces are treated as bruteforce tokens by the DP. Treating whitespace as a separator would change the core algorithm.                                                                                                        | ❌ Not Fixed                                                |
 | [#211](https://github.com/dropbox/zxcvbn/issues/211) | How to generate dictionary in another language than english ?                                                 | Use `setUserInputDictionary()` with a custom non-English word list. Full i18n is **out of scope**.                                                                                                                            | ❌ Not Fixed                                                |
 | [#209](https://github.com/dropbox/zxcvbn/issues/209) | Bruteforce and suboptimal scoring chains                                                                      | The DP is designed to find minimum guesses, not maximum matches. **This is by design**.                                                                                                                                       | ❌ Not Fixed                                                |
@@ -424,7 +513,7 @@ Status of all tracked issues from the [original zxcvbn repository](https://githu
 | [#201](https://github.com/dropbox/zxcvbn/issues/201) | User input permutation suggestions                                                                            | Covered by the fix for [#231](https://github.com/dropbox/zxcvbn/issues/231) — passwords matching user_inputs now return a specific warning and suggestions.                                                                   | ✅ Fixed                                                    |
 | [#199](https://github.com/dropbox/zxcvbn/issues/199) | Updating estimates for pbkdf2 streaching                                                                      | Fixed via the `customHashesPerSecond` option in `ZxcvbnOptions`. Pass your effective hash rate (e.g. `1e6` for pbkdf2 with 100k iterations) and a `custom_hash_rate` field is added to all crack time results.                | ✅ Fixed                                                    |
 | [#196](https://github.com/dropbox/zxcvbn/issues/196) | I'm unfamilar with what 'keyboard turns' are                                                                  | UX wording issue in the original. "Keyboard turns" refers to direction changes in a keyboard walk (e.g. `qweasd` has 1 turn). **No code change needed**.                                                                      | ➖ No code change needed — documentation clarification only |
-| [#195](https://github.com/dropbox/zxcvbn/issues/195) | Check bopomofo combinations                                                                                   | Bopomofo keyboard layout support would require adding a new adjacency graph. **Out of scope** for this rewrite.                                                                                                               | ❌ Not fixed                                                |
+| [#195](https://github.com/dropbox/zxcvbn/issues/195) | Check bopomofo combinations                                                                                   | Bopomofo keyboard layout support would require adding a new adjacency graph. **Out of scope** for this rewrite.                                                                                                               | ❌ Not Fixed                                                |
 | [#194](https://github.com/dropbox/zxcvbn/issues/194) | Long password throws an error                                                                                 | Fixed by the 128-char input limit added in `main.ts` (fix for [#326](https://github.com/dropbox/zxcvbn/issues/326)). Long passwords no longer crash the DP.                                                                   | ✅ Fixed                                                    |
 | [#190](https://github.com/dropbox/zxcvbn/issues/190) | Better support for common keyboard layouts                                                                    | Additional keyboard layout support would require new adjacency graphs. **Out of scope**.                                                                                                                                      | ❌ Not Fixed                                                |
 | [#171](https://github.com/dropbox/zxcvbn/issues/171) | Localization of feedback                                                                                      | Feedback strings are hardcoded in `feedback.ts`. A full i18n solution requires translating all strings and is **out of scope**.                                                                                               | ❌ Not Fixed                                                |

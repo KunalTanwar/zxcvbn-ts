@@ -1,6 +1,6 @@
 {
     "name": "zxcvbn-ts",
-    "version": "2.1.0",
+    "version": "2.2.0",
     "description": "TypeScript rewrite of zxcvbn — strict types, phone detection, AI feedback, cost-to-crack estimates, and 20+ bug fixes over the original",
     "author": "Kunal Tanwar",
     "license": "MIT",
@@ -17,6 +17,11 @@
             "import": "./dist/esm/ai.js",
             "require": "./dist/cjs/ai.js",
             "types": "./dist/types/ai.d.ts"
+        },
+        "./pwned": {
+            "import": "./dist/esm/pwned.js",
+            "require": "./dist/cjs/pwned.js",
+            "types": "./dist/types/pwned.d.ts"
         }
     },
     "files": [
@@ -43,7 +48,10 @@
         "crack-time",
         "phone",
         "ai",
-        "passphrase"
+        "passphrase",
+        "hibp",
+        "breach",
+        "pwned"
     ],
     "devDependencies": {
         "bun-types": "^1.3.13",

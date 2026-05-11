@@ -71,7 +71,7 @@ suite("zxcvbn() — top-level API", () => {
         assert.ok(r.crack_times_display)
     })
 
-    test("score is in range 0–4", () => {
+    test("score is in range 0-4", () => {
         for (const pw of ["a", "password", "correcthorsebatterystaple", "xkJ#9!vQ2$mP", ""]) {
             const { score } = zxcvbn(pw)
 
@@ -79,7 +79,7 @@ suite("zxcvbn() — top-level API", () => {
         }
     })
 
-    test("empty password → guesses=1, score=0", () => {
+    test("empty password → guesses = 1, score = 0", () => {
         const r = zxcvbn("")
 
         assert.equal(r.guesses, 1)
@@ -168,7 +168,7 @@ suite("scoring — mostGuessableMatchSequence", () => {
         assert.ok(sequence.length > 0)
         // First match starts at 0
         assert.equal(sequence[0].i, 0)
-        // Last match ends at pw.length-1
+        // Last match ends at pw.length - 1
         assert.equal(sequence[sequence.length - 1].j, pw.length - 1)
 
         // Contiguous coverage
@@ -375,7 +375,7 @@ suite("phoneMatch()", () => {
 
 // ---------------------------------------------------------------------------
 
-suite("minLength option (#300)", () => {
+suite("minLength option", () => {
     test("short strong password forced to score 0", () => {
         assert.equal(zxcvbn("xkJ#9!", [], { minLength: 8 }).score, 0)
     })
@@ -399,7 +399,7 @@ suite("minLength option (#300)", () => {
 
 // ---------------------------------------------------------------------------
 
-suite("crack_times_cost & displayCost (#142)", () => {
+suite("crack_times_cost & displayCost", () => {
     test("crack_times_cost has all four scenarios", () => {
         const { crack_times_cost: ctc } = zxcvbn("password")
 
@@ -429,7 +429,7 @@ suite("crack_times_cost & displayCost (#142)", () => {
 
 // ---------------------------------------------------------------------------
 
-suite("diacritics stripping (#97)", () => {
+suite("diacritics stripping", () => {
     test("pässwörd matches password", () => {
         const r = zxcvbn("pässwörd")
 
@@ -439,7 +439,7 @@ suite("diacritics stripping (#97)", () => {
 
 // ---------------------------------------------------------------------------
 
-suite("updated threat model (#272)", () => {
+suite("updated threat model", () => {
     test("crack_times_seconds uses 2025 keys", () => {
         const cts = zxcvbn("password").crack_times_seconds
 
@@ -455,6 +455,7 @@ suite("emailMatch()", () => {
         const m = emailMatch("alice@example.com")
 
         assert.ok(m.length > 0)
+
         assert.equal(m[0].pattern, "email")
         assert.equal(m[0].local, "alice")
         assert.equal(m[0].domain, "example.com")
@@ -564,8 +565,8 @@ suite("doubledSequenceMatch()", () => {
 // Summary
 // ---------------------------------------------------------------------------
 
-console.log(`\n${"─".repeat(50)}`)
-console.log(`  ${passed + failed} tests: ${passed} passed, ${failed} failed`)
-console.log(`${"─".repeat(50)}\n`)
+console.log(`\n${"─".repeat(33)}`)
+console.log(`  ${passed + failed} tests, ${passed} passed, ${failed} failed`)
+console.log(`${"─".repeat(33)}\n`)
 
 if (failed > 0) process.exit(1)

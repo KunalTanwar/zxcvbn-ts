@@ -2,6 +2,35 @@
 
 All notable changes to **zxcvbn-ts** are documented here.
 
+## [2.2.0] — May 2026
+
+### Features
+
+- **HIBP breach check** (`zxcvbn-ts/pwned`) — new `checkPwned()` function checks whether a password has appeared in a known data breach using the Have I Been Pwned Pwned Passwords API with k-anonymity. Only the first 5 characters of the SHA1 hash are sent to the API — the actual password never leaves your server.
+
+    ```ts
+    import { checkPwned } from "zxcvbn-ts/pwned"
+
+    const result = await checkPwned("password123")
+
+    result.isPwned // true
+    result.breachCount // 3861493
+    result.breachDisplay // "seen in 3,861,493 breaches"
+    ```
+
+### New types
+
+- `PwnedResult` — `isPwned`, `breachCount`, `breachDisplay`
+- `CheckPwnedOptions` — `fetch`, `timeoutMs`, `userAgent`
+
+### Tests
+
+- 11 tests in `tests/pwned.test.ts` covering k-anonymity verification, breach detection, display formatting, error handling, and edge cases.
+
+### Housekeeping
+
+- **`run.js`** — formatted: added spaces, new lines, etc.
+
 ## [2.1.0] — May 2026
 
 ### Features

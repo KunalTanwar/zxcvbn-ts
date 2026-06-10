@@ -1,5 +1,6 @@
 /// <reference types="bun-types" />
 import { describe, expect, test, mock, beforeEach, afterEach } from "bun:test"
+
 import { zxcvbnAI, anthropic, openai, gemini } from "../src/ai"
 import type { AIProvider } from "../src/ai"
 
@@ -27,6 +28,7 @@ function mockFetch(responseBody: object, status = 200) {
 }
 
 const originalFetch = globalThis.fetch
+
 afterEach(() => {
     globalThis.fetch = originalFetch
 })
@@ -60,7 +62,9 @@ function geminiResponse(text: string) {
     return {
         candidates: [
             {
-                content: { parts: [{ text }] },
+                content: {
+                    parts: [{ text }],
+                },
             },
         ],
     }

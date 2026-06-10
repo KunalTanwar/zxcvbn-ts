@@ -2,6 +2,52 @@
 
 All notable changes to **zxcvbn-ts** are documented here.
 
+## [2.2.1] — June 2026
+
+### Refactor
+
+- **Matcher architecture split into modules** — the monolithic `matching.ts` implementation was refactored into individual matcher modules:
+    - `columnWalk.ts`
+    - `date.ts`
+    - `dictionary.ts`
+    - `doubledSequence.ts`
+    - `email.ts`
+    - `interleaved.ts`
+    - `l33t.ts`
+    - `phone.ts`
+    - `regex.ts`
+    - `repeat.ts`
+    - `sequence.ts`
+    - `shared.ts`
+    - `spatial.ts`
+- Added `matching/index.ts` as the matcher orchestration layer.
+- Extracted shared matcher utilities, constants, ranked dictionaries, keyboard graphs, regex patterns, and date helpers into `matching/shared.ts`.
+- Improved maintainability by isolating matcher implementations into focused modules.
+- No public API changes.
+- No behavioral changes.
+
+### Documentation
+
+- Improved README navigation with direct links to major sections.
+- Cleaned up README formatting and organization.
+- Updated the original zxcvbn issues table for improved readability.
+- Removed the outdated changelog badge.
+
+### Developer Experience
+
+- Added Prettier configuration `(.prettierrc.cjs)` for consistent code formatting.
+- Added `@trivago/prettier-plugin-sort-imports` for automatic import sorting.
+- Standardized formatting rules across the codebase.
+- Reformatted source files using the new formatting configuration.
+
+### Housekeeping
+
+- **`ai.test.ts`** and **`ai.ts`** — formatted: added spaces, new lines, etc.
+
+### Verification
+
+- All existing tests continue to pass after the matcher refactor.
+
 ## [2.2.0] — May 2026
 
 ### Features

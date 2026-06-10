@@ -120,8 +120,14 @@ export function openai(options: OpenAIOptions = {}): AIProvider {
                     model: options.model ?? "gpt-4o-mini",
                     max_tokens: options.maxTokens ?? 300,
                     messages: [
-                        { role: "system", content: systemPrompt },
-                        { role: "user", content: userPrompt },
+                        {
+                            role: "system",
+                            content: systemPrompt,
+                        },
+                        {
+                            role: "user",
+                            content: userPrompt,
+                        },
                     ],
                 }),
             })
@@ -167,8 +173,14 @@ export function gemini(options: GeminiOptions = {}): AIProvider {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    system_instruction: { parts: [{ text: systemPrompt }] },
-                    contents: [{ parts: [{ text: userPrompt }] }],
+                    system_instruction: {
+                        parts: [{ text: systemPrompt }],
+                    },
+                    contents: [
+                        {
+                            parts: [{ text: userPrompt }],
+                        },
+                    ],
                     generationConfig: {
                         maxOutputTokens: options.maxTokens ?? 300,
                     },

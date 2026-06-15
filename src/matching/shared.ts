@@ -1,6 +1,6 @@
-import adjacencyGraphs from "../adjacency_graphs"
-import frequencyLists from "../frequency_lists"
-import { AdjacencyGraph, L33tTable, Match, RankedDictionaries, RankedDictionary } from "../types"
+import adjacencyGraphs from "../adjacency_graphs.js"
+import frequencyLists from "../frequency_lists.js"
+import { AdjacencyGraph, L33tTable, Match, RankedDictionaries, RankedDictionary } from "../types.js"
 
 export function buildRankedDict(orderedList: readonly string[]): RankedDictionary {
     const result: Record<string, number> = {}

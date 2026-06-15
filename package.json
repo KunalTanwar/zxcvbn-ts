@@ -33,7 +33,8 @@
         "build:esm": "tsc -p tsconfig.esm.json",
         "build:types": "tsc -p tsconfig.types.json",
         "typecheck": "tsc -p tsconfig.bun.json --noEmit",
-        "test": "bun test",
+        "test": "bun test ./tests",
+        "test:install": "bun run build && node --test installation_tests/esm.test.ts",
         "clean": "rm -rf dist"
     },
     "keywords": [

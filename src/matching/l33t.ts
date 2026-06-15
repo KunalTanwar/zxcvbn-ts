@@ -1,6 +1,6 @@
-import { dictionaryMatch } from "../matching"
-import { DictionaryMatch, L33tTable, RankedDictionaries } from "../types"
-import { isEmpty, L33T_TABLE, RANKED_DICTIONARIES, sorted, translate } from "./shared"
+import { dictionaryMatch } from "../matching/index.js"
+import { DictionaryMatch, L33tTable, RankedDictionaries } from "../types.js"
+import { isEmpty, L33T_TABLE, RANKED_DICTIONARIES, sorted, translate } from "./shared.js"
 
 function relevantL33tSubtable(password: string, table: L33tTable): L33tTable {
     const passwordChars = new Set(password.split(""))

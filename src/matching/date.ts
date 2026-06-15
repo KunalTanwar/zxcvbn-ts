@@ -1,5 +1,5 @@
-import { DateMatch } from "../types"
-import { DATE_MAX_YEAR, DATE_MIN_YEAR, DATE_SPLITS, sorted } from "./shared"
+import { DateMatch } from "../types.js"
+import { DATE_MAX_YEAR, DATE_MIN_YEAR, DATE_SPLITS, sorted } from "./shared.js"
 
 export function dateMatch(password: string): DateMatch[] {
     const matches: DateMatch[] = []

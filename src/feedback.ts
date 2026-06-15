@@ -1,4 +1,4 @@
-import { START_UPPER, ALL_UPPER } from "./scoring"
+import { START_UPPER, ALL_UPPER } from "./scoring.js"
 import type {
     Match,
     Feedback,
@@ -9,7 +9,7 @@ import type {
     PhoneMatch,
     DoubledSequenceMatch,
     EmailMatch,
-} from "./types"
+} from "./types.js"
 
 const DEFAULT_FEEDBACK: Feedback = {
     warning: "",

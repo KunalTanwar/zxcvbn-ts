@@ -1,4 +1,4 @@
-import { SpatialMatch } from "../types"
+import { SpatialMatch } from "../types.js"
 
 const QWERTY_KEY_POS: Readonly<Record<string, readonly [number, number]>> = {
     "`": [0, 0],

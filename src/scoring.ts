@@ -1,4 +1,4 @@
-import adjacencyGraphs from "./adjacency_graphs"
+import adjacencyGraphs from "./adjacency_graphs.js"
 import type {
     Match,
     ScoringResult,
@@ -14,7 +14,7 @@ import type {
     DoubledSequenceMatch,
     InterleavedMatch,
     EmailMatch,
-} from "./types"
+} from "./types.js"
 
 // ----------------------------------------------------------------
 // Constants

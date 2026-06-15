@@ -1,9 +1,9 @@
-import { setUserInputDictionary, omnimatch } from "./matching"
-import { mostGuessableMatchSequence } from "./scoring"
-import { estimateAttackTimes } from "./time_estimates"
-import { getFeedback } from "./feedback"
+import { setUserInputDictionary, omnimatch } from "./matching/index.js"
+import { mostGuessableMatchSequence } from "./scoring.js"
+import { estimateAttackTimes } from "./time_estimates.js"
+import { getFeedback } from "./feedback.js"
 
-import type { ZxcvbnOptions, ZxcvbnResult } from "./types"
+import type { ZxcvbnOptions, ZxcvbnResult } from "./types.js"
 
 /**
  * Estimate the strength of `password`.

@@ -1,4 +1,4 @@
-import type { FrequencyLists } from "./types"
+import type { FrequencyLists } from "./types.js"
 
 import frequencyListsJSON from "../data/frequency_lists.json"
 

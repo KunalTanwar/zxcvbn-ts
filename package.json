@@ -1,6 +1,6 @@
 {
     "name": "zxcvbn-ts",
-    "version": "2.2.1",
+    "version": "2.2.2",
     "description": "TypeScript rewrite of zxcvbn — strict types, phone detection, AI feedback, cost-to-crack estimates, and 20+ bug fixes over the original",
     "author": "Kunal Tanwar",
     "license": "MIT",

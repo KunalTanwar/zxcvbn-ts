@@ -33,7 +33,7 @@ export function getFeedback(score: number, sequence: Match[]): Feedback {
     }
 
     const feedback = getMatchFeedback(longestMatch, sequence.length === 1)
-    const extraFeedback = "Add another word or two. Uncommon words are better."
+    const extraFeedback = "Add another word or two. Uncommon words are better"
 
     if (feedback !== null) {
         return {
@@ -71,14 +71,14 @@ function getMatchFeedback(match: Match, isSoleMatch: boolean): Feedback | null {
                     : 'Repeats like "abcabcabc" are only slightly harder to guess than "abc"'
             return {
                 warning,
-                suggestions: ["Avoid repeated words and characters"],
+                suggestions: ["Avoid repeated words and characters", "Try mixing in unrelated characters instead"],
             }
         }
 
         case "sequence":
             return {
                 warning: "Sequences like abc or 6543 are easy to guess",
-                suggestions: ["Avoid sequences"],
+                suggestions: ["Avoid sequences", "Try a random mix of unrelated characters instead"],
             }
 
         case "regex": {
@@ -97,7 +97,10 @@ function getMatchFeedback(match: Match, isSoleMatch: boolean): Feedback | null {
         case "date":
             return {
                 warning: "Dates are often easy to guess",
-                suggestions: ["Avoid dates and years that are associated with you"],
+                suggestions: [
+                    "Avoid dates and years that are associated with you",
+                    "If you must use a date, combine it with unrelated words or characters",
+                ],
             }
 
         case "phone": {
@@ -113,7 +116,7 @@ function getMatchFeedback(match: Match, isSoleMatch: boolean): Feedback | null {
                 warning: `${fmt} are easy to guess`,
                 suggestions: [
                     "Avoid using phone numbers in your password",
-                    "Phone numbers can be looked up or guessed by area code",
+                    "Phone numbers can be looked up or inferred from area codes",
                 ],
             }
         }
@@ -122,7 +125,7 @@ function getMatchFeedback(match: Match, isSoleMatch: boolean): Feedback | null {
             return {
                 warning: "Alternating sequences are easy to guess",
                 suggestions: [
-                    "Patterns like a1b2c3 or A1B2C3 are well-known and easy to crack",
+                    'Patterns like "a1b2c3" are well-known and easy to crack',
                     "Mix unrelated characters rather than interleaving sequences",
                 ],
             }
@@ -134,7 +137,7 @@ function getMatchFeedback(match: Match, isSoleMatch: boolean): Feedback | null {
             return {
                 warning: `Doubled ${dir} sequences are predictable`,
                 suggestions: [
-                    `Patterns like aabbccdd or 11223344 are easy to enumerate`,
+                    'Patterns like "aabbccdd" or "11223344" are easy to enumerate',
                     "Use unrelated characters instead of repeated sequences",
                 ],
             }
@@ -159,7 +162,7 @@ function getMatchFeedback(match: Match, isSoleMatch: boolean): Feedback | null {
                     isCommon
                         ? `Using a ${em.domain} address as a password is especially risky`
                         : "Avoid using your email address as a password",
-                    "Attackers try email addresses first since they are often reused",
+                    "Use a unique password unrelated to your email address",
                 ],
             }
         }
@@ -174,7 +177,7 @@ function getDictionaryMatchFeedback(match: DictionaryMatch, isSoleMatch: boolean
 
     if (match.dictionary_name === "user_inputs") {
         return {
-            warning: "This password is on your personal info list — avoid using personal details",
+            warning: "This looks like personal information",
             suggestions: [
                 "Avoid words or phrases connected to yourself",
                 "Avoid information others might know about you",
@@ -201,6 +204,8 @@ function getDictionaryMatchFeedback(match: DictionaryMatch, isSoleMatch: boolean
     } else if (match.dictionary_name === "us_tv_and_film") {
         if (isSoleMatch) {
             warning = "TV show and film names are easy to guess"
+        } else {
+            warning = "Common pop culture references are easy to guess"
         }
     } else if (["surnames", "male_names", "female_names"].includes(match.dictionary_name)) {
         if (isSoleMatch) {
@@ -222,13 +227,14 @@ function getDictionaryMatchFeedback(match: DictionaryMatch, isSoleMatch: boolean
     if (match.reversed && match.token.length >= 4) {
         suggestions.push("Reversed words aren't much harder to guess")
     }
+
     if (match.l33t) {
         const subDisplay = match.sub_display
 
         if (subDisplay) {
-            suggestions.push(`Predictable substitutions like '${subDisplay}' don't help very much`)
+            suggestions.push(`Predictable substitutions like "${subDisplay}" don't add much security`)
         } else {
-            suggestions.push("Predictable substitutions like '@' instead of 'a' don't help very much")
+            suggestions.push('Predictable substitutions like "@" instead of "a" don\'t add much security')
         }
     }
 

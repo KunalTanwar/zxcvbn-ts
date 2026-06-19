@@ -1,10 +1,44 @@
-# Folders
-dist/
-node_modules/
+# dependencies (bun install)
+node_modules
 
-# Files
-.env
-.npmrc
+# lock files
 bun.lock
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
 
+# VS Code
+.vscode/
+
+# output
+out
+dist
 *.tgz
+
+# code coverage
+*.lcov
+coverage
+
+# logs
+_.log
+logs
+report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
+
+# dotenv environment variable files
+.env
+.env.development.local
+.env.local
+.env.production.local
+.env.test.local
+.npmrc
+
+# caches
+.cache
+.eslintcache
+*.tsbuildinfo
+
+# IntelliJ based IDEs
+.idea
+
+# Finder (MacOS) folder config
+.DS_Store

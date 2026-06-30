@@ -254,25 +254,27 @@ Respond with raw JSON only — no markdown, no backticks, no preamble.`
 /**
  * Evaluate a password with AI-powered feedback.
  *
+ * Parameter order matches `zxcvbn()`: `(password, userInputs, options)`.
+
  * @param password    The password to evaluate.
+ * @param userInputs  Optional user-specific words to penalise (same as `zxcvbn()`).
  * @param options     Provider and optional overrides.
- * @param userInputs  Optional user-specific words to penalise.
  *
  * @example
  * ```ts
  * import { zxcvbnAI, anthropic, openai, gemini } from "zxcvbn-ts/ai";
  *
  * // Anthropic (default)
- * await zxcvbnAI("password123", { provider: anthropic({ apiKey: "sk-ant-..." }) });
+ * await zxcvbnAI("password123", [], { provider: anthropic({ apiKey: "sk-ant-..." }) });
  *
  * // OpenAI
- * await zxcvbnAI("password123", { provider: openai({ apiKey: "sk-..." }) });
+ * await zxcvbnAI("password123", [], { provider: openai({ apiKey: "sk-..." }) });
  *
  * // Gemini
- * await zxcvbnAI("password123", { provider: gemini({ apiKey: "..." }) });
+ * await zxcvbnAI("password123", [], { provider: gemini({ apiKey: "..." }) });
  *
  * // Custom adapter (Ollama, Mistral, etc.)
- * await zxcvbnAI("password123", {
+ * await zxcvbnAI("password123", [], {
  *   provider: {
  *     complete: async (system, user) => {
  *       const res = await myLLM.chat({ system, user });
@@ -284,8 +286,8 @@ Respond with raw JSON only — no markdown, no backticks, no preamble.`
  **/
 export async function zxcvbnAI(
     password: string,
-    options: ZxcvbnAIOptions = {},
     userInputs: Array<string | number | boolean> = [],
+    options: ZxcvbnAIOptions = {},
 ): Promise<ZxcvbnAIResult> {
     const provider = options.provider ?? anthropic()
     const base = zxcvbn(password, userInputs)

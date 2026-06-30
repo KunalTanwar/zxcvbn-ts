@@ -1,3 +1,4 @@
+import { COMMON_EMAIL_DOMAINS } from "./matching/shared"
 import { START_UPPER, ALL_UPPER } from "./scoring"
 import type {
     Match,
@@ -145,16 +146,7 @@ function getMatchFeedback(match: Match, isSoleMatch: boolean): Feedback | null {
 
         case "email": {
             const em = match as EmailMatch
-            const isCommon = [
-                "gmail.com",
-                "yahoo.com",
-                "hotmail.com",
-                "outlook.com",
-                "icloud.com",
-                "aol.com",
-                "protonmail.com",
-                "live.com",
-            ].includes(em.domain.toLowerCase())
+            const isCommon = COMMON_EMAIL_DOMAINS.has(em.domain.toLowerCase())
 
             return {
                 warning: "Email addresses are easy to guess and often publicly known",

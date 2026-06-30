@@ -94,6 +94,7 @@ export function doubledSequenceMatch(password: string): DoubledSequenceMatch[] {
             })
 
             i += length
+            foundMatch = true
 
             break
         }

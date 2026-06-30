@@ -39,7 +39,7 @@ export const L33T_TABLE: L33tTable = {
 } as const
 
 export const REGEXES: Record<string, RegExp> = {
-    recent_year: /19\d\d|20[0-3]\d/g,
+    recent_year: /19\d\d|20[0-4]\d/g,
 }
 
 export const DATE_MAX_YEAR = 2050
@@ -93,3 +93,18 @@ export function _mod(x: number, y: number): number {
 export function sorted<T extends Match>(matches: T[]): T[] {
     return [...matches].sort((a, b) => a.i - b.i || a.j - b.j)
 }
+
+// Shared across scoring.ts and feedback.ts to keep penalty logic in sync
+export const COMMON_EMAIL_DOMAINS = new Set([
+    "gmail.com",
+    "yahoo.com",
+    "hotmail.com",
+    "outlook.com",
+    "icloud.com",
+    "aol.com",
+    "protonmail.com",
+    "live.com",
+    "msn.com",
+    "me.com",
+    "mac.com",
+])

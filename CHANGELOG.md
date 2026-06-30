@@ -2,6 +2,67 @@
 
 All notable changes to **zxcvbn-ts** are documented here.
 
+## [2.3.0] — June 2026
+
+### Bug Fixes
+
+- **`doubledSequenceMatch` double-increment bug** — `foundMatch` was declared but never set to `true` inside the match arm, causing `i` to always be incremented by 1 _after_ already advancing by the match length. Adjacent doubled-sequence patterns (e.g. two separate `aabbccdd`-style tokens in a row) could be skipped as a result. Fixed by setting `foundMatch = true` before `break`.
+- **`columnWalkMatch` produced zero guesses** — `turns` was hardcoded to `0`, causing `spatialGuesses()` to return `0` for every column-walk match (the inner loop is `j = 1..min(turns, i-1)`, which never executes when `turns = 0`). Column walks are straight-line paths equivalent to one directional component — `turns` is now correctly set to `1`, consistent with how `spatialMatch` handles straight rows like `qwerty`.
+- **`columnWalkMatch` used keypad scoring constants** — `spatialGuesses()` branched on `"qwerty"` and `"dvorak"` for QWERTY keyboard constants and fell through to keypad constants for all other graph names. `"qwerty_column"` is now included in the QWERTY branch so column-walk matches are scored against the correct starting positions and average degree.
+
+### Improvements
+
+- **`COMMON_EMAIL_DOMAINS` extracted as shared constant** — the list of common email providers was duplicated between `scoring.ts` (11 entries) and `feedback.ts` (8 entries), causing `msn.com`, `me.com`, and `mac.com` to receive low-guesses scoring treatment but non-specific feedback copy. Both now import from `matching/shared.ts`, keeping penalty logic in sync. The `Set` is also now module-level instead of being rebuilt on every `emailGuesses()` call.
+- **`interleavedGuesses` uses average of both sequence lengths** — previously only `sequence_a.length` was used as the length factor, underestimating guesses by up to 1× for odd-length tokens where the two sub-sequences differ in length by 1. Now uses `(sequence_a.length + sequence_b.length) / 2`.
+- **`recent_year` regex extended through 2049** — the pattern `/19\d\d|20[0-3]\d/` only covered years up to 2039, creating a gap against `DATE_MAX_YEAR = 2050`. Updated to `/19\d\d|20[0-4]\d/` to keep year detection in sync with the date matcher's upper bound.
+- **`zxcvbnAI()` parameter order aligned with `zxcvbn()`** — the signature was `(password, options, userInputs)`, the reverse of `zxcvbn()`'s `(password, userInputs, options)`. This was a silent footgun for callers switching between the two. The order is now `(password, userInputs, options)` to match. All JSDoc examples updated.
+
+```ts
+// Before (old — broken if you passed userInputs)
+await zxcvbnAI("password123", { provider: anthropic() }, ["alice"])
+
+// After (new — matches zxcvbn() parameter order)
+await zxcvbnAI("password123", ["alice"], { provider: anthropic() })
+```
+
+> ⚠️ **Breaking change** — any existing call passing `options` as the second argument must be updated.
+
+### Files changed
+
+- `src/matching/doubledSequence.ts`
+- `src/matching/columnWalk.ts`
+- `src/matching/shared.ts`
+- `src/scoring.ts`
+- `src/feedback.ts`
+- `src/ai.ts`
+
+## [2.2.3] — June 2026
+
+### Bug Fixes
+
+- **Feedback wording improvements** — the following matcher feedback messages were refined for clarity and tone:
+    - `repeat` — added a second suggestion: _"Try mixing in unrelated characters instead"_.
+    - `sequence` — added a second suggestion: _"Try a random mix of unrelated characters instead"_.
+    - `date` — added a second suggestion: _"If you must use a date, combine it with unrelated words or characters"_.
+    - `phone` — reworded: _"Phone numbers can be looked up or guessed by area code"_ → _"Phone numbers can be looked up or inferred from area codes"_.
+    - `interleaved` — quoted the example pattern for clarity: `'Patterns like "a1b2c3" are well-known and easy to crack'`.
+    - `doubled_sequence` — quoted the example patterns: `'Patterns like "aabbccdd" or "11223344" are easy to enumerate'`.
+    - `user_inputs` dictionary — warning softened to _"This looks like personal information"_.
+    - `us_tv_and_film` dictionary — added non-sole-match warning: _"Common pop culture references are easy to guess"_.
+    - l33t substitution — reworded from _"don't help very much"_ to _"don't add much security"_; actual substitution now shown in double quotes.
+    - `extraFeedback` — trailing period removed for consistency with other suggestions.
+
+### Housekeeping
+
+- Removed trailing comma from `.prettierrc.cjs`.
+- Version bump to `2.2.3` in `package.json`.
+
+## [2.2.2] — June
+
+### Housekeeping
+
+Updated `.gitignore` — added entries for common editor artifacts, OS files, and local environment files.
+
 ## [2.2.1] — June 2026
 
 ### Refactor

@@ -1,5 +1,4 @@
 /// <reference types="bun-types" />
-import { describe, expect, test } from "bun:test"
 import {
     zxcvbn,
     omnimatch,
@@ -22,6 +21,7 @@ import {
     displayCost,
     emailMatch,
 } from "../src/index"
+import { describe, expect, test } from "bun:test"
 
 // ---------------------------------------------------------------------------
 // Top-level API
@@ -340,11 +340,13 @@ describe("regexMatch()", () => {
     test("finds recent years including 2024", () => {
         expect(regexMatch("in2024now").some((m) => m.regex_name === "recent_year")).toBe(true)
     })
-    test("finds 2031 (updated regex covers up to 2039)", () => {
+
+    test("finds 2031 (updated regex covers up to 2049)", () => {
         expect(regexMatch("pass2031").some((m) => m.regex_name === "recent_year")).toBe(true)
     })
-    test("does not match 2040 (out of range)", () => {
-        expect(regexMatch("pass2040").some((m) => m.regex_name === "recent_year")).toBe(false)
+
+    test("does not match 2050 (out of range)", () => {
+        expect(regexMatch("pass2050").some((m) => m.regex_name === "recent_year")).toBe(false)
     })
 })
 

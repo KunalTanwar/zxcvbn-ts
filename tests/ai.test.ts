@@ -1,8 +1,7 @@
 /// <reference types="bun-types" />
-import { describe, expect, test, mock, beforeEach, afterEach } from "bun:test"
-
 import { zxcvbnAI, anthropic, openai, gemini } from "../src/ai"
 import type { AIProvider } from "../src/ai"
+import { describe, expect, test, mock, beforeEach, afterEach } from "bun:test"
 
 // ---------------------------------------------------------------------------
 // Mock helpers
@@ -76,7 +75,7 @@ describe("anthropic() provider", () => {
     test("returns AI feedback fields", async () => {
         mockFetch(anthropicResponse(MOCK_FEEDBACK))
 
-        const r = await zxcvbnAI("password", {
+        const r = await zxcvbnAI("password", [], {
             provider: anthropic({
                 apiKey: "test-key",
             }),
@@ -96,7 +95,7 @@ describe("anthropic() provider", () => {
             return new Response(JSON.stringify(anthropicResponse(MOCK_FEEDBACK)), { status: 200 })
         }) as unknown as typeof fetch
 
-        await zxcvbnAI("password", {
+        await zxcvbnAI("password", [], {
             provider: anthropic({
                 apiKey: "test-key",
             }),
@@ -116,7 +115,7 @@ describe("anthropic() provider", () => {
             })
         }) as unknown as typeof fetch
 
-        await zxcvbnAI("password", {
+        await zxcvbnAI("password", [], {
             provider: anthropic({
                 apiKey: "my-secret-key",
             }),
@@ -131,7 +130,7 @@ describe("anthropic() provider", () => {
         mockFetch(anthropicResponse(MOCK_FEEDBACK))
 
         await expect(
-            zxcvbnAI("password", {
+            zxcvbnAI("password", [], {
                 provider: anthropic(),
             }),
         ).resolves.toBeTruthy()
@@ -143,7 +142,7 @@ describe("anthropic() provider", () => {
         delete process.env.ANTHROPIC_API_KEY
 
         await expect(
-            zxcvbnAI("password", {
+            zxcvbnAI("password", [], {
                 provider: anthropic(),
             }),
         ).rejects.toThrow("Anthropic API key")
@@ -158,7 +157,7 @@ describe("anthropic() provider", () => {
         )
 
         await expect(
-            zxcvbnAI("password", {
+            zxcvbnAI("password", [], {
                 provider: anthropic({ apiKey: "bad" }),
             }),
         ).rejects.toThrow("401")
@@ -175,7 +174,7 @@ describe("anthropic() provider", () => {
             })
         }) as unknown as typeof fetch
 
-        await zxcvbnAI("password", {
+        await zxcvbnAI("password", [], {
             provider: anthropic({
                 apiKey: "test-key",
                 model: "claude-opus-4-6",
@@ -192,7 +191,7 @@ describe("openai() provider", () => {
     test("returns AI feedback fields", async () => {
         mockFetch(openaiResponse(MOCK_FEEDBACK))
 
-        const r = await zxcvbnAI("password", {
+        const r = await zxcvbnAI("password", [], {
             provider: openai({
                 apiKey: "test-key",
             }),
@@ -212,7 +211,7 @@ describe("openai() provider", () => {
             })
         }) as unknown as typeof fetch
 
-        await zxcvbnAI("password", {
+        await zxcvbnAI("password", [], {
             provider: openai({ apiKey: "test-key" }),
         })
 
@@ -230,7 +229,7 @@ describe("openai() provider", () => {
             })
         }) as unknown as typeof fetch
 
-        await zxcvbnAI("password", {
+        await zxcvbnAI("password", [], {
             provider: openai({
                 apiKey: "my-openai-key",
             }),
@@ -245,7 +244,7 @@ describe("openai() provider", () => {
         mockFetch(openaiResponse(MOCK_FEEDBACK))
 
         await expect(
-            zxcvbnAI("password", {
+            zxcvbnAI("password", [], {
                 provider: openai(),
             }),
         ).resolves.toBeTruthy()
@@ -257,7 +256,7 @@ describe("openai() provider", () => {
         delete process.env.OPENAI_API_KEY
 
         await expect(
-            zxcvbnAI("password", {
+            zxcvbnAI("password", [], {
                 provider: openai(),
             }),
         ).rejects.toThrow("OpenAI API key")
@@ -274,7 +273,7 @@ describe("openai() provider", () => {
             })
         }) as unknown as typeof fetch
 
-        await zxcvbnAI("password", {
+        await zxcvbnAI("password", [], {
             provider: openai({
                 apiKey: "test-key",
                 model: "gpt-4o",
@@ -291,7 +290,7 @@ describe("gemini() provider", () => {
     test("returns AI feedback fields", async () => {
         mockFetch(geminiResponse(MOCK_FEEDBACK))
 
-        const r = await zxcvbnAI("password", {
+        const r = await zxcvbnAI("password", [], {
             provider: gemini({
                 apiKey: "test-key",
             }),
@@ -311,7 +310,7 @@ describe("gemini() provider", () => {
             })
         }) as unknown as typeof fetch
 
-        await zxcvbnAI("password", {
+        await zxcvbnAI("password", [], {
             provider: gemini({
                 apiKey: "test-key",
             }),
@@ -327,7 +326,7 @@ describe("gemini() provider", () => {
         mockFetch(geminiResponse(MOCK_FEEDBACK))
 
         await expect(
-            zxcvbnAI("password", {
+            zxcvbnAI("password", [], {
                 provider: gemini(),
             }),
         ).resolves.toBeTruthy()
@@ -339,7 +338,7 @@ describe("gemini() provider", () => {
         delete process.env.GEMINI_API_KEY
 
         await expect(
-            zxcvbnAI("password", {
+            zxcvbnAI("password", [], {
                 provider: gemini(),
             }),
         ).rejects.toThrow("Gemini API key")
@@ -356,7 +355,7 @@ describe("gemini() provider", () => {
             })
         }) as unknown as typeof fetch
 
-        await zxcvbnAI("password", {
+        await zxcvbnAI("password", [], {
             provider: gemini({
                 apiKey: "test-key",
                 model: "gemini-1.5-pro",
@@ -375,7 +374,7 @@ describe("custom adapter", () => {
             complete: mock(async () => MOCK_FEEDBACK),
         }
 
-        const r = await zxcvbnAI("password", {
+        const r = await zxcvbnAI("password", [], {
             provider: customProvider,
         })
 
@@ -396,7 +395,7 @@ describe("custom adapter", () => {
             }),
         }
 
-        await zxcvbnAI("password", {
+        await zxcvbnAI("password", [], {
             provider: customProvider,
         })
 
@@ -410,7 +409,7 @@ describe("custom adapter", () => {
             complete: mock(async () => "not valid json"),
         }
 
-        const r = await zxcvbnAI("password", {
+        const r = await zxcvbnAI("password", [], {
             provider: customProvider,
         })
 
@@ -437,7 +436,7 @@ describe("zxcvbnAI() — shared behaviour", () => {
     })
 
     test("score still reflects zxcvbn estimate, not AI opinion", async () => {
-        const r = await zxcvbnAI("password", {
+        const r = await zxcvbnAI("password", [], {
             provider: anthropic({
                 apiKey: "test",
             }),
@@ -447,31 +446,23 @@ describe("zxcvbnAI() — shared behaviour", () => {
     })
 
     test("userInputs are penalised", async () => {
-        const withInput = await zxcvbnAI(
-            "alice2024",
-            {
-                provider: anthropic({
-                    apiKey: "test",
-                }),
-            },
-            ["alice"],
-        )
+        const withInput = await zxcvbnAI("alice2024", ["alice"], {
+            provider: anthropic({
+                apiKey: "test",
+            }),
+        })
 
-        const without = await zxcvbnAI(
-            "alice2024",
-            {
-                provider: anthropic({
-                    apiKey: "test",
-                }),
-            },
-            [],
-        )
+        const without = await zxcvbnAI("alice2024", [], {
+            provider: anthropic({
+                apiKey: "test",
+            }),
+        })
 
         expect(withInput.guesses).toBeLessThanOrEqual(without.guesses)
     })
 
     test("all ZxcvbnResult fields are present", async () => {
-        const r = await zxcvbnAI("password", {
+        const r = await zxcvbnAI("password", [], {
             provider: anthropic({
                 apiKey: "test",
             }),
@@ -480,7 +471,9 @@ describe("zxcvbnAI() — shared behaviour", () => {
         expect(typeof r.score).toBe("number")
         expect(typeof r.guesses).toBe("number")
         expect(typeof r.calc_time).toBe("number")
+
         expect(Array.isArray(r.sequence)).toBe(true)
+
         expect(r.crack_times_seconds).toBeTruthy()
         expect(r.crack_times_display).toBeTruthy()
     })

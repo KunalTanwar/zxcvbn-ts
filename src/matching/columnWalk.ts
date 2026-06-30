@@ -116,6 +116,7 @@ export function columnWalkMatch(password: string): SpatialMatch[] {
 
         if (!startPos) {
             i++
+
             continue
         }
 
@@ -163,9 +164,10 @@ export function columnWalkMatch(password: string): SpatialMatch[] {
                 j: j - 1,
                 token: password.slice(i, j),
                 graph: "qwerty_column",
-                turns: 0,
+                turns: 1,
                 shifted_count: shiftedCount,
             })
+
             i = j
         } else {
             i++

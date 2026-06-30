@@ -1,4 +1,5 @@
 import adjacencyGraphs from "./adjacency_graphs"
+import { COMMON_EMAIL_DOMAINS } from "./matching/shared"
 import type {
     Match,
     ScoringResult,
@@ -396,7 +397,7 @@ function spatialGuesses(match: SpatialMatch): number {
     let s: number
     let d: number
 
-    if (match.graph === "qwerty" || match.graph === "dvorak") {
+    if (match.graph === "qwerty" || match.graph === "dvorak" || match.graph === "qwerty_column") {
         s = KEYBOARD_STARTING_POSITIONS
         d = KEYBOARD_AVERAGE_DEGREE
     } else {
@@ -530,7 +531,10 @@ function interleavedGuesses(match: InterleavedMatch): number {
     // Ascending or descending each halves the search space
     const dirMultiplier = 2
 
-    return spaceA * spaceB * match.sequence_a.length * dirMultiplier
+    // Use average of both sequence lengths — they differ by at most 1 (ceil vs floor of token/2)
+    const avgLength = (match.sequence_a.length + match.sequence_b.length) / 2
+
+    return spaceA * spaceB * avgLength * dirMultiplier
 }
 
 function doubledSequenceGuesses(match: DoubledSequenceMatch): number {
@@ -557,19 +561,7 @@ function emailGuesses(match: EmailMatch): number {
     //                local parts are often real names or words
     //   domain:      2 for common providers, local.length^2 otherwise
     //   structure:   fixed multiplier — @ + TLD is always present
-    const COMMON_DOMAINS = new Set([
-        "gmail.com",
-        "yahoo.com",
-        "hotmail.com",
-        "outlook.com",
-        "icloud.com",
-        "aol.com",
-        "protonmail.com",
-        "live.com",
-        "msn.com",
-        "me.com",
-        "mac.com",
-    ])
+    const COMMON_DOMAINS = COMMON_EMAIL_DOMAINS
 
     const domainFactor = COMMON_DOMAINS.has(match.domain.toLowerCase()) ? 2 : 10
     const localEntropy = Math.pow(10, match.local.length * 0.3)

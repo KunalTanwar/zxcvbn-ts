@@ -1,5 +1,5 @@
-import { DoubledSequenceMatch } from "../types"
-import { sorted } from "./shared"
+import { DoubledSequenceMatch } from "../types.js"
+import { sorted } from "./shared.js"
 
 export function doubledSequenceMatch(password: string): DoubledSequenceMatch[] {
     const matches: DoubledSequenceMatch[] = []

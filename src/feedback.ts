@@ -1,5 +1,5 @@
-import { COMMON_EMAIL_DOMAINS } from "./matching/shared"
-import { START_UPPER, ALL_UPPER } from "./scoring"
+import { COMMON_EMAIL_DOMAINS } from "./matching/shared.js"
+import { START_UPPER, ALL_UPPER } from "./scoring.js"
 import type {
     Match,
     Feedback,

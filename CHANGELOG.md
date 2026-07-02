@@ -2,6 +2,54 @@
 
 All notable changes to **zxcvbn-ts** are documented here.
 
+## [2.3.1] — July 2026
+
+### Bug Fixes
+
+- **`src/index.ts` and `src/main.ts` — bare `./matching` import** — the directory import `from "./matching"` was missing both the `.js` extension and the explicit `index` segment, producing `Cannot find module './matching.js'` under Node's strict ESM resolver. Fixed to `from "./matching/index.js"`.
+- **`src/matching/repeat.ts` — bare `.` import** — `from "."` was not caught by the extension-addition pass (no `/` in the specifier). Fixed to `from "./index.js"`.
+- **`src/matching/l33t.ts` — circular barrel import** — `dictionaryMatch` was imported via `../matching` (the barrel), which re-exports `l33tMatch` from `l33t.ts` itself, creating a circular dependency. Changed to import directly from `./dictionary.js`.
+- **`src/frequency_lists.ts` — JSON import incompatible with NodeNext ESM** — a direct `import … from "*.json"` requires `with { type: "json" }` under `NodeNext` ESM but `require()` under CJS — two incompatible syntaxes for a single shared source file. Replaced with `readFileSync` + `JSON.parse`, which works identically under both module systems. The current directory is derived from `__dirname` in CJS output and from `import.meta.url` in ESM output via a runtime branch.
+
+### Improvements
+
+- **Node ESM resolution (`ERR_MODULE_NOT_FOUND`)** — explicit `.js` extensions added to every extensionless relative import specifier across all 22 `src/` files. TypeScript emits these specifiers as-is; Node's native ESM resolver requires them to be explicit. Bundlers (webpack, Vite) and Bun silently compensate, which is why this never surfaced in the existing test suite.
+- **`tsconfig.esm.json` — `module`/`moduleResolution` updated to `NodeNext`** — was previously `ES2020`/`bundler`, which produced output that passed in lenient environments but failed under Node's strict ESM resolver. `NodeNext` enforces the same resolution rules Node uses at runtime, catching specifier issues at compile time.
+- **`package.json` scripts** — added `test:node` (runs `tests/run.js` against the CJS build), `test:all` (unit tests → build → node integration). `prepublishOnly` now uses `test:all` to exercise the full pipeline before every publish.
+
+### Attribution
+
+Core ESM import extension fix originally reported and prototyped by
+[Ariel-Mutebi](https://github.com/Ariel-Mutebi) in
+[#1](https://github.com/KunalTanwar/zxcvbn-ts/pull/1).
+
+### Files changed
+
+- `src/adjacency_graphs.ts`
+- `src/ai.ts`
+- `src/feedback.ts`
+- `src/frequency_lists.ts`
+- `src/index.ts`
+- `src/main.ts`
+- `src/matching/columnWalk.ts`
+- `src/matching/date.ts`
+- `src/matching/dictionary.ts`
+- `src/matching/doubledSequence.ts`
+- `src/matching/email.ts`
+- `src/matching/index.ts`
+- `src/matching/interleaved.ts`
+- `src/matching/l33t.ts`
+- `src/matching/phone.ts`
+- `src/matching/regex.ts`
+- `src/matching/repeat.ts`
+- `src/matching/sequence.ts`
+- `src/matching/shared.ts`
+- `src/matching/spatial.ts`
+- `src/scoring.ts`
+- `src/time_estimates.ts`
+- `tsconfig.esm.json`
+- `package.json`
+
 ## [2.3.0] — June 2026
 
 ### Bug Fixes

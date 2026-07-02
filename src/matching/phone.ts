@@ -1,5 +1,5 @@
-import { PhoneMatch } from "../types"
-import { sorted } from "./shared"
+import { PhoneMatch } from "../types.js"
+import { sorted } from "./shared.js"
 
 const PHONE_PATTERNS: Array<{
     name: string

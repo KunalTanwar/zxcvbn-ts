@@ -1,6 +1,6 @@
-import adjacencyGraphs from "../adjacency_graphs"
-import { AdjacencyGraph, SpatialMatch } from "../types"
-import { extend, sorted } from "./shared"
+import adjacencyGraphs from "../adjacency_graphs.js"
+import { AdjacencyGraph, SpatialMatch } from "../types.js"
+import { extend, sorted } from "./shared.js"
 
 const SHIFTED_RX = /[~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?]/
 

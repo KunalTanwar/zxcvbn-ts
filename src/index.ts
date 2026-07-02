@@ -1,4 +1,4 @@
-export { zxcvbn as default, zxcvbn } from "./main"
+export { zxcvbn as default, zxcvbn } from "./main.js"
 
 // Types
 export type {
@@ -27,10 +27,10 @@ export type {
     L33tTable,
     AdjacencyGraph,
     AdjacencyGraphs,
-} from "./types"
+} from "./types.js"
 
 // Lower-level helpers (useful for custom integrations / testing)
-export { mostGuessableMatchSequence } from "./scoring"
+export { mostGuessableMatchSequence } from "./scoring.js"
 export {
     omnimatch,
     dictionaryMatch,
@@ -47,6 +47,6 @@ export {
     doubledSequenceMatch,
     emailMatch,
     setUserInputDictionary,
-} from "./matching"
-export { estimateAttackTimes, guessesToScore, displayTime, displayCost } from "./time_estimates"
-export { getFeedback } from "./feedback"
+} from "./matching/index.js"
+export { estimateAttackTimes, guessesToScore, displayTime, displayCost } from "./time_estimates.js"
+export { getFeedback } from "./feedback.js"

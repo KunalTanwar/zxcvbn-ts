@@ -1,5 +1,5 @@
-import { zxcvbn } from "./main"
-import type { ZxcvbnResult, Match } from "./types"
+import { zxcvbn } from "./main.js"
+import type { ZxcvbnResult, Match } from "./types.js"
 
 // ======================= //
 // Public Types            //

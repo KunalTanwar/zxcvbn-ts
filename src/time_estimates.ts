@@ -1,4 +1,4 @@
-import type { AttackTimes, CrackTimesSeconds, CrackTimesDisplay, CrackTimesCost } from "./types"
+import type { AttackTimes, CrackTimesSeconds, CrackTimesDisplay, CrackTimesCost } from "./types.js"
 
 /**
  * Attack scenario guesses-per-second rates.

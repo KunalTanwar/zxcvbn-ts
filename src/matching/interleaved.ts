@@ -1,5 +1,5 @@
-import { InterleavedMatch } from "../types"
-import { sorted } from "./shared"
+import { InterleavedMatch } from "../types.js"
+import { sorted } from "./shared.js"
 
 export function interleavedSequenceMatch(password: string): InterleavedMatch[] {
     const matches: InterleavedMatch[] = []

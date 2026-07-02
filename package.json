@@ -1,6 +1,6 @@
 {
     "name": "zxcvbn-ts",
-    "version": "2.3.0",
+    "version": "2.3.1",
     "description": "TypeScript rewrite of zxcvbn — strict types, phone detection, AI feedback, cost-to-crack estimates, and 20+ bug fixes over the original",
     "author": "Kunal Tanwar",
     "license": "MIT",
@@ -34,8 +34,10 @@
         "build:types": "tsc -p tsconfig.types.json",
         "typecheck": "tsc -p tsconfig.bun.json --noEmit",
         "test": "bun test",
+        "test:node": "node tests/run.js",
+        "test:all": "bun run test && bun run build && bun run test:node",
         "clean": "rm -rf dist",
-        "prepublishOnly": "bun run typecheck && bun run build && bun test"
+        "prepublishOnly": "bun run typecheck && bun run test:all"
     },
     "keywords": [
         "password",

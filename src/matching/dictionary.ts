@@ -1,5 +1,5 @@
-import { DictionaryMatch, RankedDictionaries } from "../types"
-import { buildRankedDict, RANKED_DICTIONARIES, sorted } from "./shared"
+import { DictionaryMatch, RankedDictionaries } from "../types.js"
+import { buildRankedDict, RANKED_DICTIONARIES, sorted } from "./shared.js"
 
 export function setUserInputDictionary(orderedList: string[]): void {
     RANKED_DICTIONARIES["user_inputs"] = buildRankedDict([...orderedList])

@@ -1,5 +1,5 @@
-import { EmailMatch } from "../types"
-import { sorted } from "./shared"
+import { EmailMatch } from "../types.js"
+import { sorted } from "./shared.js"
 
 const EMAIL_PATTERN = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g
 

@@ -1,4 +1,4 @@
-import type { AdjacencyGraphs } from "./types"
+import type { AdjacencyGraphs } from "./types.js"
 
 const adjacencyGraphs: AdjacencyGraphs = {
     qwerty: {

@@ -1,4 +1,4 @@
-import { SequenceMatch } from "../types"
+import { SequenceMatch } from "../types.js"
 
 const MAX_DELTA = 5
 

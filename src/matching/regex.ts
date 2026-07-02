@@ -1,5 +1,5 @@
-import { RegexMatch } from "../types"
-import { REGEXES, sorted } from "./shared"
+import { RegexMatch } from "../types.js"
+import { REGEXES, sorted } from "./shared.js"
 
 export function regexMatch(password: string, regexes: Record<string, RegExp> = REGEXES): RegexMatch[] {
     const matches: RegexMatch[] = []

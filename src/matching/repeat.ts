@@ -1,6 +1,6 @@
-import { omnimatch } from "."
-import { mostGuessableMatchSequence } from "../scoring"
-import type { RepeatMatch } from "../types"
+import { mostGuessableMatchSequence } from "../scoring.js"
+import type { RepeatMatch } from "../types.js"
+import { omnimatch } from "./index.js"
 
 export function repeatMatch(password: string): RepeatMatch[] {
     const matches: RepeatMatch[] = []

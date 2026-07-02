@@ -1,5 +1,5 @@
-import adjacencyGraphs from "./adjacency_graphs"
-import { COMMON_EMAIL_DOMAINS } from "./matching/shared"
+import adjacencyGraphs from "./adjacency_graphs.js"
+import { COMMON_EMAIL_DOMAINS } from "./matching/shared.js"
 import type {
     Match,
     ScoringResult,
@@ -15,7 +15,7 @@ import type {
     DoubledSequenceMatch,
     InterleavedMatch,
     EmailMatch,
-} from "./types"
+} from "./types.js"
 
 // ----------------------------------------------------------------
 // Constants
